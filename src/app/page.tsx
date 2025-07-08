@@ -53,63 +53,70 @@ export default function Home() {
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && currentTripId !== null) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const imageDataUrl = e.target?.result as string;
-        if (!imageDataUrl) return;
+    const capturedTripId = currentTripId;
 
-        const imageId = Date.now();
-        const newImage: Image = {
-          id: imageId,
-          src: imageDataUrl,
-          caption: 'Analyzing...',
-          description: 'AI is generating a description for your image.',
-          dataAiHint: '',
-          rotation: (Math.random() - 0.5) * 20,
-          loading: true,
-        };
-        
-        setTrips(prevTrips => prevTrips.map(t => 
-          t.id === currentTripId ? { ...t, images: [...t.images, newImage] } : t
-        ));
-
-        startTransition(async () => {
-          try {
-            const result = await describeImage({ photoDataUri: imageDataUrl });
-            setTrips(prevTrips => prevTrips.map(t => {
-              if (t.id === currentTripId) {
-                return {
-                  ...t,
-                  images: t.images.map(img => 
-                    img.id === imageId ? { ...img, ...result, loading: false } : img
-                  )
-                }
-              }
-              return t;
-            }));
-          } catch (error) {
-            console.error('Failed to describe image:', error);
-            setTrips(prevTrips => prevTrips.map(t => {
-              if (t.id === currentTripId) {
-                return { ...t, images: t.images.filter(img => img.id !== imageId) }
-              }
-              return t;
-            }));
-            toast({
-              title: 'Error Analyzing Image',
-              description: "We couldn't generate a description for your image. Please try a different one.",
-              variant: 'destructive',
-            });
-          }
-        });
-      };
-      reader.readAsDataURL(file);
-    }
     if (event.target) {
       event.target.value = '';
     }
-    setCurrentTripId(null);
+
+    if (!file || capturedTripId === null) {
+      setCurrentTripId(null);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const imageDataUrl = e.target?.result as string;
+      if (!imageDataUrl) return;
+
+      const imageId = Date.now();
+      const newImage: Image = {
+        id: imageId,
+        src: imageDataUrl,
+        caption: 'Analyzing...',
+        description: 'AI is generating a description for your image.',
+        dataAiHint: '',
+        rotation: (Math.random() - 0.5) * 20,
+        loading: true,
+      };
+      
+      setTrips(prevTrips => prevTrips.map(t => 
+        t.id === capturedTripId ? { ...t, images: [...t.images, newImage] } : t
+      ));
+
+      startTransition(async () => {
+        try {
+          const result = await describeImage({ photoDataUri: imageDataUrl });
+          setTrips(prevTrips => prevTrips.map(t => {
+            if (t.id === capturedTripId) {
+              return {
+                ...t,
+                images: t.images.map(img => 
+                  img.id === imageId ? { ...img, ...result, loading: false } : img
+                )
+              }
+            }
+            return t;
+          }));
+        } catch (error) {
+          console.error('Failed to describe image:', error);
+          setTrips(prevTrips => prevTrips.map(t => {
+            if (t.id === capturedTripId) {
+              return { ...t, images: t.images.filter(img => img.id !== imageId) }
+            }
+            return t;
+          }));
+          toast({
+            title: 'Error Analyzing Image',
+            description: "We couldn't generate a description for your image. Please try a different one.",
+            variant: 'destructive',
+          });
+        } finally {
+            setCurrentTripId(null);
+        }
+      });
+    };
+    reader.readAsDataURL(file);
   };
   
   const allImageDescriptions = trips.flatMap(trip => trip.images.filter(img => !img.loading).map(img => img.description));
