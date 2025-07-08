@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { ImageStack } from '@/components/image-stack';
 import { ImagePreview } from '@/components/image-preview';
 import { HashtagGenerator } from '@/components/hashtag-generator';
 import { Camera, Upload } from 'lucide-react';
+import { describeImage } from '@/ai/flows/describe-image';
+import { useToast } from '@/hooks/use-toast';
 
 export type Image = {
   id: number;
@@ -14,63 +16,66 @@ export type Image = {
   description: string;
   dataAiHint: string;
   rotation: number;
+  loading?: boolean;
 };
-
-const placeholderImages: Omit<Image, 'rotation'>[] = [
-  {
-    id: 1,
-    src: 'https://placehold.co/400x400.png',
-    caption: 'Sunrise Mountains',
-    description:
-      'breathtaking sunrise over a mountain range with misty valleys',
-    dataAiHint: 'sunrise mountains',
-  },
-  {
-    id: 2,
-    src: 'https://placehold.co/400x400.png',
-    caption: 'Ancient Ruins',
-    description:
-      'exploring ancient stone ruins under a clear blue sky in Greece',
-    dataAiHint: 'ancient ruins',
-  },
-  {
-    id: 3,
-    src: 'https://placehold.co/400x400.png',
-    caption: 'Beach Sunset',
-    description: 'a vibrant sunset over a calm tropical beach with palm trees',
-    dataAiHint: 'beach sunset',
-  },
-  {
-    id: 4,
-    src: 'https://placehold.co/400x400.png',
-    caption: 'City Nights',
-    description: 'bustling city street at night with neon lights and traffic trails',
-    dataAiHint: 'city lights',
-  },
-  {
-    id: 5,
-    src: 'https://placehold.co/400x400.png',
-    caption: 'Forest Hike',
-    description:
-      'hiking through a dense, green forest with sunlight filtering through the trees',
-    dataAiHint: 'forest hike',
-  },
-];
 
 export default function Home() {
   const [images, setImages] = useState<Image[]>([]);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isProcessing, startTransition] = useTransition();
+  const { toast } = useToast();
 
-  const addImage = () => {
-    if (images.length < 5) {
-      const newImage = placeholderImages[images.length];
-      setImages([
-        ...images,
-        {
-          ...newImage,
+  const handleAddImageClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && images.length < 5) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const imageDataUrl = e.target?.result as string;
+        if (!imageDataUrl) return;
+
+        const imageId = Date.now();
+        const newImage: Image = {
+          id: imageId,
+          src: imageDataUrl,
+          caption: 'Analyzing...',
+          description: 'AI is generating a description for your image.',
+          dataAiHint: '',
           rotation: (Math.random() - 0.5) * 20,
-        },
-      ]);
+          loading: true,
+        };
+        setImages((prevImages) => [...prevImages, newImage]);
+
+        startTransition(async () => {
+          try {
+            const result = await describeImage({ photoDataUri: imageDataUrl });
+            setImages((prevImages) =>
+              prevImages.map((img) =>
+                img.id === imageId
+                  ? { ...img, ...result, loading: false }
+                  : img
+              )
+            );
+          } catch (error) {
+            console.error('Failed to describe image:', error);
+            setImages((prevImages) => prevImages.filter((img) => img.id !== imageId));
+            toast({
+              title: 'Error Analyzing Image',
+              description:
+                "We couldn't generate a description for your image. Please try a different one.",
+              variant: 'destructive',
+            });
+          }
+        });
+      };
+      reader.readAsDataURL(file);
+      if (event.target) {
+        event.target.value = '';
+      }
     }
   };
 
@@ -99,16 +104,23 @@ export default function Home() {
             </div>
           )}
 
-          <Button onClick={addImage} disabled={images.length >= 5} size="lg">
+          <Button onClick={handleAddImageClick} disabled={images.length >= 5 || isProcessing} size="lg">
             <Upload className="mr-2 h-5 w-5" />
-            Add Image ({images.length}/5)
+            {isProcessing ? 'Processing Image...' : `Add Image (${images.length}/5)`}
           </Button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            className="hidden"
+            accept="image/*"
+          />
         </div>
 
         {images.length > 0 && (
           <div className="w-full max-w-3xl mt-16 border-t pt-12">
             <HashtagGenerator
-              imageDescriptions={images.map(img => img.description)}
+              imageDescriptions={images.filter(img => !img.loading).map(img => img.description)}
             />
           </div>
         )}

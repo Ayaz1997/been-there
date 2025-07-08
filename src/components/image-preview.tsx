@@ -17,7 +17,7 @@ export function ImagePreview({ open, onOpenChange, images }: ImagePreviewProps) 
       <DialogContent className="bg-transparent border-none shadow-none max-w-4xl w-full p-0 h-full flex items-center justify-center">
         <Carousel className="w-full max-w-xs sm:max-w-sm"
           opts={{
-            loop: true,
+            loop: images.length > 1,
           }}
         >
           <CarouselContent>
@@ -29,13 +29,16 @@ export function ImagePreview({ open, onOpenChange, images }: ImagePreviewProps) 
                       caption={image.caption}
                       dataAiHint={image.dataAiHint}
                       className="shadow-2xl"
+                      loading={image.loading}
                     />
                 </div>
               </CarouselItem>
             ))}
           </CarouselContent>
-          <CarouselPrevious className="left-[-50px] text-white bg-black/30 hover:bg-black/50 border-none" />
-          <CarouselNext className="right-[-50px] text-white bg-black/30 hover:bg-black/50 border-none" />
+          {images.length > 1 && <>
+            <CarouselPrevious className="left-[-50px] text-white bg-black/30 hover:bg-black/50 border-none" />
+            <CarouselNext className="right-[-50px] text-white bg-black/30 hover:bg-black/50 border-none" />
+          </>}
         </Carousel>
       </DialogContent>
     </Dialog>

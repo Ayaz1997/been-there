@@ -29,6 +29,7 @@ export function ImageStack({ images, onStackClick }: ImageStackProps) {
             src={image.src}
             caption={image.caption}
             dataAiHint={image.dataAiHint}
+            loading={image.loading}
           />
         </div>
       ))}
