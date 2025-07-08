@@ -1,37 +1,9 @@
 "use client";
 
-import { useCallback, useEffect } from 'react';
-import useEmblaCarousel, { type EmblaCarouselType } from 'embla-carousel-react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Polaroid } from './polaroid';
 import { type Image } from '@/types';
-
-const TWEEN_FACTOR = 1.8;
-
-const setTween = (emblaApi: EmblaCarouselType) => {
-  const scrollProgress = emblaApi.scrollProgress();
-
-  emblaApi.slideNodes().forEach((slideNode, index) => {
-    const slideProgress = emblaApi.scrollSnapList()[index] - scrollProgress;
-    
-    if (Math.abs(slideProgress) > 2) {
-      slideNode.style.opacity = '0';
-      slideNode.style.zIndex = '0';
-      return;
-    }
-
-    const originalRotation = parseFloat(slideNode.dataset.rotation || '0');
-    const newRotation = originalRotation + (slideProgress * -1 * 25 * TWEEN_FACTOR);
-    const scale = 1 - Math.abs(slideProgress) * 0.4;
-    const opacity = 1 - Math.abs(slideProgress) * 0.8;
-    const y = Math.abs(slideProgress) * -50;
-    const zIndex = 100 - Math.abs(Math.round(slideProgress * 100));
-
-    slideNode.style.transform = `translateY(${y}px) scale(${scale}) rotate(${newRotation}deg)`;
-    slideNode.style.opacity = `${opacity}`;
-    slideNode.style.zIndex = `${zIndex}`;
-  });
-};
 
 type ImagePreviewProps = {
   open: boolean;
@@ -40,68 +12,115 @@ type ImagePreviewProps = {
 };
 
 export function ImagePreview({ open, onOpenChange, images }: ImagePreviewProps) {
-  const [emblaRef, emblaApi] = useEmblaCarousel({
-    loop: images.length > 2,
-    align: 'center',
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const topCardRef = useRef<HTMLDivElement>(null);
+  const dragInfo = useRef({
+    startX: 0,
+    isDragging: false,
   });
-
-  const onSelect = useCallback((emblaApi: EmblaCarouselType) => {
-    setTween(emblaApi);
-  }, []);
-
-  const onScroll = useCallback((emblaApi: EmblaCarouselType) => {
-    setTween(emblaApi);
-  }, []);
-
-  useEffect(() => {
-    if (!emblaApi || !open) return;
-    onSelect(emblaApi);
-    emblaApi.on('select', onSelect);
-    emblaApi.on('scroll', onScroll);
-    emblaApi.on('reInit', onSelect);
-    
-    emblaApi.slideNodes().forEach((node, i) => {
-      if (images[i]) {
-        node.dataset.rotation = String(images[i].rotation);
-      }
-    });
-
-    return () => {
-        emblaApi.off('select', onSelect);
-        emblaApi.off('scroll', onScroll);
-        emblaApi.off('reInit', onSelect);
-    }
-  }, [emblaApi, open, onSelect, onScroll, images]);
 
   useEffect(() => {
     if (open) {
-      emblaApi?.reInit();
+      setCurrentIndex(0);
     }
-  }, [open, emblaApi])
+  }, [open]);
+
+  const handleSwipe = useCallback(() => {
+    if (currentIndex < images.length) {
+       setTimeout(() => {
+        setCurrentIndex(prev => prev + 1);
+      }, 300);
+    }
+  }, [currentIndex, images.length]);
+  
+  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (currentIndex >= images.length) return;
+
+    dragInfo.current.startX = e.clientX;
+    dragInfo.current.isDragging = true;
+    if (topCardRef.current) {
+      topCardRef.current.style.transition = 'none';
+    }
+    // Set pointer capture to ensure events are handled by this element
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }, [currentIndex, images.length]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragInfo.current.isDragging || !topCardRef.current) return;
+    
+    const deltaX = e.clientX - dragInfo.current.startX;
+    const rotation = deltaX / 20;
+    topCardRef.current.style.transform = `translateX(${deltaX}px) rotate(${rotation}deg)`;
+  }, []);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragInfo.current.isDragging || !topCardRef.current) return;
+
+    dragInfo.current.isDragging = false;
+    topCardRef.current.style.transition = 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)';
+    
+    const deltaX = e.clientX - dragInfo.current.startX;
+    const screenWidth = window.innerWidth;
+
+    if (Math.abs(deltaX) > screenWidth / 4) {
+      const flyOutX = Math.sign(deltaX) * (screenWidth * 1.2);
+      const flyOutRotation = deltaX / 10;
+      topCardRef.current.style.transform = `translateX(${flyOutX}px) rotate(${flyOutRotation}deg)`;
+      handleSwipe();
+    } else {
+      topCardRef.current.style.transform = 'translateX(0) rotate(0)';
+    }
+
+    // Release pointer capture
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  }, [handleSwipe]);
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-transparent border-none shadow-none max-w-none w-full h-full p-0 flex items-center justify-center">
-        <div className="overflow-hidden h-full w-full" ref={emblaRef}>
-            <div className="flex items-center h-full" style={{ backfaceVisibility: 'hidden' }}>
-              {images.map((image) => (
+      <DialogContent 
+        className="bg-transparent border-none shadow-none max-w-none w-full h-full p-0 flex items-center justify-center overflow-hidden"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        style={{ touchAction: 'none' }}
+      >
+        <DialogTitle className="sr-only">Image Preview</DialogTitle>
+        
+        <div className="relative w-[300px] h-[380px] flex items-center justify-center">
+            {currentIndex >= images.length && (
+              <p className="text-white text-2xl font-headline bg-black/50 p-4 rounded-lg">No more photos</p>
+            )}
+            {images.slice(currentIndex).reverse().slice(0, 5).map((image, index, arr) => {
+                const isTopCard = index === arr.length - 1;
+                const cardStackIndex = arr.length - 1 - index;
+
+                return (
                 <div
-                  key={image.id}
-                  className="relative flex-[0_0_100%] min-w-0 flex items-center justify-center"
-                  data-rotation={image.rotation}
+                    key={image.id}
+                    ref={isTopCard ? topCardRef : null}
+                    className="absolute transition-transform duration-300 ease-out"
+                    style={{
+                        zIndex: images.length - cardStackIndex,
+                        transform: isTopCard 
+                            ? 'translateX(0) rotate(0)' 
+                            : `translateY(${cardStackIndex * -12}px) scale(${1 - cardStackIndex * 0.04}) rotate(${cardStackIndex * (cardStackIndex % 2 === 0 ? 2 : -2)}deg)`,
+                        transformOrigin: 'center',
+                    }}
                 >
-                   <div className="w-[300px] h-[380px] flex items-center justify-center">
-                    <Polaroid
-                        src={image.src}
-                        caption={image.caption}
-                        dataAiHint={image.dataAiHint}
-                        className="shadow-2xl"
-                        loading={image.loading}
-                    />
-                  </div>
+                    <div className="w-[300px] h-[380px] flex items-center justify-center">
+                        <Polaroid
+                            src={image.src}
+                            caption={image.caption}
+                            dataAiHint={image.dataAiHint}
+                            className="shadow-2xl"
+                            loading={image.loading}
+                        />
+                    </div>
                 </div>
-              ))}
-            </div>
+                );
+            })}
         </div>
       </DialogContent>
     </Dialog>
