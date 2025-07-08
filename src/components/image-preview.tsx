@@ -4,7 +4,7 @@ import { useCallback, useEffect } from 'react';
 import useEmblaCarousel, { type EmblaCarouselType } from 'embla-carousel-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Polaroid } from './polaroid';
-import { type Image } from '@/app/page';
+import { type Image } from '@/types';
 import { Button } from './ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 

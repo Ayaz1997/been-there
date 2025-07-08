@@ -1,7 +1,7 @@
 "use client";
 
 import { Polaroid } from './polaroid';
-import { type Image } from '@/app/page';
+import { type Image } from '@/types';
 
 type ImageStackProps = {
   images: Image[];
