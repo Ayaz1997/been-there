@@ -27,7 +27,7 @@ export function Polaroid({ src, caption, className, style }: PolaroidProps) {
           />
       </div>
        <div className="h-10 flex items-center justify-center absolute bottom-5 left-0 right-0 px-4">
-          <p className="font-headline text-center text-2xl text-accent truncate">
+          <p className="font-caption text-center text-3xl text-accent truncate">
               {caption}
           </p>
       </div>
