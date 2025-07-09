@@ -4,7 +4,6 @@ import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { ImageStack } from '@/components/image-stack';
 import { ImagePreview } from '@/components/image-preview';
-import { HashtagGenerator } from '@/components/hashtag-generator';
 import { Camera, Upload, PlusCircle, Smile, Frown, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { type Image as ImageType, type Trip } from '@/types';
@@ -119,11 +118,9 @@ export default function Home() {
     setCurrentTripId(null);
   };
 
-  const allImageCaptions = trips.flatMap(trip => trip.images.map(img => img.caption));
-
   return (
-    <div className="bg-background min-h-screen font-body text-foreground/90">
-      <main className="container mx-auto px-4 py-8 md:py-16 flex flex-col items-center">
+    <div className="bg-background min-h-screen font-body text-foreground/90 flex flex-col">
+      <main className="container mx-auto px-4 py-8 md:py-16 flex flex-col items-center flex-grow">
         <header className="text-center mb-8 md:mb-16">
           <h1 className="font-headline text-5xl md:text-7xl text-primary">
             Been There, Snapped That
@@ -221,13 +218,12 @@ export default function Home() {
           accept="image/*"
         />
 
-        {allImageCaptions.length > 0 && (
-          <div className="w-full max-w-3xl mt-24 border-t pt-12">
-            <HashtagGenerator imageDescriptions={allImageCaptions} />
-          </div>
-        )}
       </main>
       
+      <footer className="text-center py-8 text-muted-foreground italic">
+        <p>Riding to places, pausing for chai, and writing down the in-betweens.</p>
+      </footer>
+
       <ImagePreview
         open={!!previewedTrip}
         onOpenChange={(isOpen) => { if (!isOpen) setPreviewedTrip(null); }}
