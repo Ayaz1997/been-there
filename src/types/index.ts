@@ -8,5 +8,9 @@ export type Image = {
 export type Trip = {
   id: number;
   name: string;
+  description: string;
+  date: string;
+  bestMoment: string;
+  worstMoment: string;
   images: Image[];
 };

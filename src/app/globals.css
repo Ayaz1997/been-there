@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --background: 125 47% 94%;
+    --background: 140 70% 97%;
     --foreground: 20 15% 25%;
     --card: 0 0% 100%;
     --card-foreground: 20 15% 25%;
@@ -37,6 +37,10 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    --best-moment: 120 73% 92%;
+    --best-moment-foreground: 120 25% 35%;
+    --worst-moment: 0 84% 94%;
+    --worst-moment-foreground: 0 50% 45%;
   }
   .dark {
     --background: 20 15% 10%;
@@ -71,6 +75,10 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    --best-moment: 120 25% 25%;
+    --best-moment-foreground: 120 73% 92%;
+    --worst-moment: 0 50% 30%;
+    --worst-moment-foreground: 0 84% 94%;
   }
 }
 
