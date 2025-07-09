@@ -14,7 +14,7 @@ import {z} from 'genkit';
 const SuggestHashtagsInputSchema = z.object({
   imageDescriptions: z
     .array(z.string())
-    .describe('A list of descriptions for each of the images.'),
+    .describe('A list of captions for each of the images.'),
 });
 export type SuggestHashtagsInput = z.infer<typeof SuggestHashtagsInputSchema>;
 
@@ -35,9 +35,9 @@ const prompt = ai.definePrompt({
   output: {schema: SuggestHashtagsOutputSchema},
   prompt: `You are a social media expert specializing in travel stories.
 
-You will generate a list of hashtags based on the image descriptions provided.
+You will generate a list of hashtags based on the image captions provided.
 
-Image Descriptions:
+Image Captions:
 {{#each imageDescriptions}}
 - {{{this}}}
 {{/each}}

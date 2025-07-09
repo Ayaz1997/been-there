@@ -113,9 +113,7 @@ export function ImagePreview({ open, onOpenChange, images }: ImagePreviewProps) 
                         <Polaroid
                             src={image.src}
                             caption={image.caption}
-                            dataAiHint={image.dataAiHint}
                             className="shadow-2xl"
-                            loading={image.loading}
                         />
                     </div>
                 </div>

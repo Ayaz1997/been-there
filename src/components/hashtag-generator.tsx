@@ -58,7 +58,7 @@ export function HashtagGenerator({ imageDescriptions }: HashtagGeneratorProps) {
     <div className="text-center flex flex-col items-center">
         <h2 className="font-headline text-3xl md:text-4xl text-primary mb-4">Get Inspired</h2>
         <p className="text-muted-foreground mb-6 max-w-xl">
-            Let our AI suggest relevant hashtags for your travel story to boost its reach.
+            Let our AI suggest relevant hashtags for your travel story based on your captions.
         </p>
       <Button onClick={handleGenerateHashtags} disabled={isPending || imageDescriptions.length === 0}>
         <Wand2 className="mr-2 h-4 w-4" />

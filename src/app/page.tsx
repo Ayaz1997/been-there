@@ -1,17 +1,17 @@
 'use client';
 
-import { useState, useRef, useTransition } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { ImageStack } from '@/components/image-stack';
 import { ImagePreview } from '@/components/image-preview';
 import { HashtagGenerator } from '@/components/hashtag-generator';
 import { Camera, Upload, PlusCircle } from 'lucide-react';
-import { describeImage } from '@/ai/flows/describe-image';
 import { useToast } from '@/hooks/use-toast';
-import { type Image, type Trip } from '@/types';
+import { type Image as ImageType, type Trip } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import NextImage from 'next/image';
 
 export default function Home() {
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -20,9 +20,12 @@ export default function Home() {
   const [newTripName, setNewTripName] = useState('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isProcessing, startTransition] = useTransition();
   const { toast } = useToast();
   const [currentTripId, setCurrentTripId] = useState<number | null>(null);
+
+  const [isCaptionModalOpen, setCaptionModalOpen] = useState(false);
+  const [imageToCaption, setImageToCaption] = useState<{ dataUrl: string; tripId: number | null }>({ dataUrl: '', tripId: null });
+  const [newCaption, setNewCaption] = useState('');
 
   const handleAddImageClick = (tripId: number) => {
     const trip = trips.find(t => t.id === tripId);
@@ -68,58 +71,42 @@ export default function Home() {
     reader.onload = (e) => {
       const imageDataUrl = e.target?.result as string;
       if (!imageDataUrl) return;
-
-      const imageId = Date.now();
-      const newImage: Image = {
-        id: imageId,
-        src: imageDataUrl,
-        caption: 'Analyzing...',
-        description: 'AI is generating a description for your image.',
-        dataAiHint: '',
-        rotation: (Math.random() - 0.5) * 20,
-        loading: true,
-      };
       
-      setTrips(prevTrips => prevTrips.map(t => 
-        t.id === capturedTripId ? { ...t, images: [...t.images, newImage] } : t
-      ));
-
-      startTransition(async () => {
-        try {
-          const result = await describeImage({ photoDataUri: imageDataUrl });
-          setTrips(prevTrips => prevTrips.map(t => {
-            if (t.id === capturedTripId) {
-              return {
-                ...t,
-                images: t.images.map(img => 
-                  img.id === imageId ? { ...img, ...result, loading: false } : img
-                )
-              }
-            }
-            return t;
-          }));
-        } catch (error) {
-          console.error('Failed to describe image:', error);
-          setTrips(prevTrips => prevTrips.map(t => {
-            if (t.id === capturedTripId) {
-              return { ...t, images: t.images.filter(img => img.id !== imageId) }
-            }
-            return t;
-          }));
-          toast({
-            title: 'Error Analyzing Image',
-            description: "We couldn't generate a description for your image. Please try a different one.",
-            variant: 'destructive',
-          });
-        } finally {
-            setCurrentTripId(null);
-        }
-      });
+      setImageToCaption({ dataUrl: imageDataUrl, tripId: capturedTripId });
+      setCaptionModalOpen(true);
     };
     reader.readAsDataURL(file);
   };
   
-  const allImageDescriptions = trips.flatMap(trip => trip.images.filter(img => !img.loading).map(img => img.description));
+  const handleSaveImageWithCaption = () => {
+    if (!imageToCaption.dataUrl || !newCaption.trim() || imageToCaption.tripId === null) {
+      toast({
+        title: "Cannot Save",
+        description: "Please ensure you have an image and a caption.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newImage: ImageType = {
+      id: Date.now(),
+      src: imageToCaption.dataUrl,
+      caption: newCaption,
+      rotation: (Math.random() - 0.5) * 20,
+    };
+
+    setTrips(prevTrips => prevTrips.map(t => 
+      t.id === imageToCaption.tripId ? { ...t, images: [...t.images, newImage] } : t
+    ));
+
+    // Reset and close modal
+    setCaptionModalOpen(false);
+    setNewCaption('');
+    setImageToCaption({ dataUrl: '', tripId: null });
+    setCurrentTripId(null);
+  };
+
+  const allImageCaptions = trips.flatMap(trip => trip.images.map(img => img.caption));
 
   return (
     <div className="bg-background min-h-screen font-body text-foreground/90">
@@ -166,9 +153,9 @@ export default function Home() {
                           </div>
                         )}
                       </div>
-                      <Button onClick={() => handleAddImageClick(trip.id)} disabled={isProcessing} size="sm" className="mt-4 w-full">
+                      <Button onClick={() => handleAddImageClick(trip.id)} size="sm" className="mt-4 w-full">
                          <Upload className="mr-2 h-4 w-4" />
-                         {isProcessing && currentTripId === trip.id ? 'Processing...' : `Add Image (${trip.images.length}/5)`}
+                         {`Add Image (${trip.images.length}/5)`}
                       </Button>
                     </CardContent>
                   </Card>
@@ -194,10 +181,10 @@ export default function Home() {
           accept="image/*"
         />
 
-        {allImageDescriptions.length > 0 && (
+        {allImageCaptions.length > 0 && (
           <div className="w-full max-w-3xl mt-16 border-t pt-12">
             <HashtagGenerator
-              imageDescriptions={allImageDescriptions}
+              imageDescriptions={allImageCaptions}
             />
           </div>
         )}
@@ -228,6 +215,39 @@ export default function Home() {
           <DialogFooter>
             <Button type="submit" onClick={handleCreateTrip} disabled={!newTripName.trim() || trips.length >= 3}>Create Trip</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isCaptionModalOpen} onOpenChange={(isOpen) => {
+        if (!isOpen) {
+          setCaptionModalOpen(false);
+          setNewCaption('');
+          setImageToCaption({ dataUrl: '', tripId: null });
+        }
+      }}>
+        <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add a Caption</DialogTitle>
+              <DialogDescription>
+                Give your new photo a memorable caption.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+                {imageToCaption.dataUrl && (
+                    <div className="relative w-full aspect-square rounded-md overflow-hidden">
+                        <NextImage src={imageToCaption.dataUrl} alt="Image preview" layout="fill" objectFit="cover" />
+                    </div>
+                )}
+                <Input 
+                    placeholder="e.g., A beautiful sunset in paradise..."
+                    value={newCaption}
+                    onChange={(e) => setNewCaption(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSaveImageWithCaption()}
+                />
+            </div>
+            <DialogFooter>
+              <Button type="submit" onClick={handleSaveImageWithCaption} disabled={!newCaption.trim()}>Save Photo</Button>
+            </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

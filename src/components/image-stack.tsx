@@ -28,8 +28,6 @@ export function ImageStack({ images, onStackClick }: ImageStackProps) {
           <Polaroid
             src={image.src}
             caption={image.caption}
-            dataAiHint={image.dataAiHint}
-            loading={image.loading}
           />
         </div>
       ))}
