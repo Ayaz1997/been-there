@@ -1,303 +1,160 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ImageStack } from '@/components/image-stack';
-import { ImagePreview } from '@/components/image-preview';
-import { Camera, Upload, PlusCircle, Smile, Frown, Users } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Leaf, Award, Rocket, Copy, PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { type Image as ImageType, type Trip } from '@/types';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
+import { type Trip } from '@/types';
 import NextImage from 'next/image';
+import { EditableText } from '@/components/editable-text';
 
-const initialNewTripData = {
-  name: '',
-  date: '',
-  description: '',
-  bestMoment: '',
-  worstMoment: '',
+type TripCardData = {
+  id: number;
+  date: string;
+  name: string;
+  description: string;
+};
+
+const initialTripData: TripCardData = {
+  id: Date.now(),
+  date: 'Date',
+  name: 'Your trip name',
+  description: "Your trip's short story goes here",
 };
 
 export default function Home() {
-  const [trips, setTrips] = useState<Trip[]>([]);
-  const [previewedTrip, setPreviewedTrip] = useState<Trip | null>(null);
-  const [isCreateTripOpen, setCreateTripOpen] = useState(false);
-  const [newTripData, setNewTripData] = useState(initialNewTripData);
-  
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const [currentTripId, setCurrentTripId] = useState<number | null>(null);
+  const [trips, setTrips] = useState<TripCardData[]>([initialTripData]);
 
-  const [isCaptionModalOpen, setCaptionModalOpen] = useState(false);
-  const [imageToCaption, setImageToCaption] = useState<{ dataUrl: string; tripId: number | null }>({ dataUrl: '', tripId: null });
-  const [newCaption, setNewCaption] = useState('');
+  const handleUpdateTrip = (id: number, field: keyof Omit<TripCardData, 'id'>, value: string) => {
+    setTrips(currentTrips =>
+      currentTrips.map(trip =>
+        trip.id === id ? { ...trip, [field]: value } : trip
+      )
+    );
+  };
 
-  const handleAddImageClick = (tripId: number) => {
-    const trip = trips.find(t => t.id === tripId);
-    if (trip && trip.images.length >= 5) {
+  const addNextTrip = () => {
+    if (trips.length < 3) {
+      setTrips(current => [...current, { ...initialTripData, id: Date.now() }]);
+    } else {
       toast({
-        title: "Trip Full",
-        description: "You can only add 5 images per trip.",
+        title: "Maximum trips reached",
+        description: "You can only create up to 3 trips for now.",
         variant: "destructive",
       });
-      return;
-    }
-    setCurrentTripId(tripId);
-    fileInputRef.current?.click();
-  };
-  
-  const handleNewTripChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { id, value } = e.target;
-    setNewTripData(prev => ({ ...prev, [id]: value }));
-  };
-
-  const handleCreateTrip = () => {
-    if (newTripData.name.trim() && trips.length < 3) {
-      const newTrip: Trip = {
-        id: Date.now(),
-        ...newTripData,
-        images: [],
-      };
-      setTrips(prevTrips => [...prevTrips, newTrip]);
-      setNewTripData(initialNewTripData);
-      setCreateTripOpen(false);
     }
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    const capturedTripId = currentTripId;
-
-    if (event.target) {
-      event.target.value = '';
-    }
-
-    if (!file || capturedTripId === null) {
-      setCurrentTripId(null);
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const imageDataUrl = e.target?.result as string;
-      if (!imageDataUrl) return;
-      
-      setImageToCaption({ dataUrl: imageDataUrl, tripId: capturedTripId });
-      setCaptionModalOpen(true);
-    };
-    reader.readAsDataURL(file);
-  };
-  
-  const handleSaveImageWithCaption = () => {
-    if (!imageToCaption.dataUrl || !newCaption.trim() || imageToCaption.tripId === null) {
-      toast({
-        title: "Cannot Save",
-        description: "Please ensure you have an image and a caption.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const newImage: ImageType = {
-      id: Date.now(),
-      src: imageToCaption.dataUrl,
-      caption: newCaption,
-      rotation: (Math.random() - 0.5) * 20,
-    };
-
-    setTrips(prevTrips => prevTrips.map(t => 
-      t.id === imageToCaption.tripId ? { ...t, images: [...t.images, newImage] } : t
-    ));
-
-    setCaptionModalOpen(false);
-    setNewCaption('');
-    setImageToCaption({ dataUrl: '', tripId: null });
-    setCurrentTripId(null);
+  const copyToClipboard = () => {
+    const link = 'https://beenthere.page/sourav';
+    navigator.clipboard.writeText(link);
+    toast({
+      title: 'Link Copied!',
+      description: 'Your profile link is now on your clipboard.',
+    });
   };
 
   return (
-    <div className="bg-background min-h-screen font-body text-foreground/90 flex flex-col">
-      <main className="container mx-auto px-4 py-8 md:py-16 flex flex-col items-center flex-grow">
-        <header className="text-center mb-8 md:mb-16">
-          <h1 className="font-headline text-5xl md:text-7xl text-primary">
-            Been There, Snapped That
-          </h1>
-          <p className="text-muted-foreground mt-2 text-lg">
-            Your visual travel diary.
-          </p>
-        </header>
-
-        <div className="w-full max-w-5xl">
-          {trips.length === 0 && (
-            <div className="text-center p-8">
-              <Camera className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <h2 className="font-headline text-2xl mb-2">Your story awaits</h2>
-              <p className="text-muted-foreground mb-4">
-                Click below to create your first trip and start your story.
-              </p>
-              <Button onClick={() => setCreateTripOpen(true)} size="lg">
-                <PlusCircle className="mr-2 h-5 w-5" />
-                Create First Trip
-              </Button>
-            </div>
-          )}
-
-          {trips.length > 0 && (
-            <div className="space-y-24">
-              {trips.map(trip => (
-                <section key={trip.id} className="flex flex-col items-center w-full">
-                  <div className="text-center">
-                    <p className="text-muted-foreground">{trip.date}</p>
-                    <h2 className="font-headline text-5xl md:text-6xl text-primary mt-2">{trip.name}</h2>
-                    <p className="text-muted-foreground mt-4 text-lg italic">"{trip.description}"</p>
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-8 w-full mt-12 text-left">
-                    <div className="bg-[hsl(var(--best-moment))] p-6 rounded-2xl text-[hsl(var(--best-moment-foreground))]">
-                      <h3 className="font-headline text-2xl flex items-center gap-2">
-                        <Smile className="w-7 h-7" />
-                        Best moment
-                      </h3>
-                      <p className="mt-4 opacity-90 whitespace-pre-wrap">{trip.bestMoment}</p>
-                    </div>
-                    <div className="bg-[hsl(var(--worst-moment))] p-6 rounded-2xl text-[hsl(var(--worst-moment-foreground))]">
-                      <h3 className="font-headline text-2xl flex items-center gap-2">
-                        <Frown className="w-7 h-7" />
-                        Worst moment
-                      </h3>
-                      <p className="mt-4 opacity-90 whitespace-pre-wrap">{trip.worstMoment}</p>
-                    </div>
-                  </div>
-
-                  <div className="mt-20 text-center w-full">
-                    <h3 className="font-headline text-5xl text-primary">Moments</h3>
-                    <p className="text-muted-foreground mt-2 text-lg italic">"Some of our best memories at Himachal"</p>
-                    <div className="mt-8 relative flex items-center justify-center min-h-[450px]">
-                      {trip.images.length > 0 ? (
-                        <ImageStack images={trip.images} onStackClick={() => setPreviewedTrip(trip)} />
-                      ) : (
-                        <div className="text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
-                          <p>This trip has no photos yet.</p>
-                          <p className="text-sm mt-1">Click the button below to add one!</p>
-                        </div>
-                      )}
-                    </div>
-                    <Button onClick={() => handleAddImageClick(trip.id)} className="mt-8">
-                      <Upload className="mr-2 h-4 w-4" />
-                      {`Add Image (${trip.images.length}/5)`}
-                    </Button>
-                  </div>
-                  
-                  <div className="mt-16 flex items-center gap-2 text-muted-foreground">
-                    <Users className="w-5 h-5" />
-                    <p>With @sambit and @ayaz</p>
-                  </div>
-                </section>
-              ))}
-            </div>
-          )}
-
-          {trips.length > 0 && trips.length < 3 && (
-            <div className="text-center mt-24 border-t w-full pt-12">
-               <Button onClick={() => setCreateTripOpen(true)} size="lg">
-                <PlusCircle className="mr-2 h-5 w-5" />
-                Add Another Trip
-              </Button>
-            </div>
-          )}
+    <div className="bg-background min-h-screen font-body text-foreground flex flex-col items-center p-4 sm:p-6 lg:p-8">
+      <header className="w-full max-w-7xl mx-auto flex justify-between items-center py-4">
+        <div className="flex items-center gap-2">
+          <Leaf className="text-primary h-6 w-6" />
+          <span className="font-headline text-2xl font-semibold">Been there!</span>
         </div>
-        
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileChange}
-          className="hidden"
-          accept="image/*"
-        />
+        <nav className="hidden md:flex items-center gap-4">
+          <Button variant="ghost">Travel Stories</Button>
+          <Button variant="outline"><Rocket className="mr-2" /> Get Premium</Button>
+          <Button><Award className="mr-2" /> Publish</Button>
+          <Avatar>
+            <AvatarFallback>A</AvatarFallback>
+          </Avatar>
+        </nav>
+      </header>
 
+      <main className="flex flex-col items-center w-full max-w-4xl mx-auto mt-12 md:mt-20">
+        <div className="bg-green-100/50 p-8 rounded-3xl shadow-sm w-full max-w-md">
+          <div className="flex flex-col items-center text-center">
+            <Avatar className="w-24 h-24 border-4 border-white shadow-md">
+              <AvatarImage src="https://placehold.co/100x100.png" alt="Sourav" data-ai-hint="profile person" />
+              <AvatarFallback>S</AvatarFallback>
+            </Avatar>
+            <h1 className="font-headline text-5xl mt-4">Sourav</h1>
+            <p className="text-muted-foreground mt-2 italic">"Riding to places, pausing for chai, and writing down the in-betweens."</p>
+            <div className="mt-6 w-full flex items-center justify-between bg-white/70 rounded-lg p-2 pl-4 shadow-inner-sm">
+              <span className="text-sm text-muted-foreground truncate">https://beenthere.page/sourav</span>
+              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={copyToClipboard}>
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <section className="text-center mt-20">
+          <h2 className="font-headline text-5xl md:text-6xl">Your Journey, Your Story</h2>
+          <p className="text-muted-foreground mt-4 max-w-2xl mx-auto">
+            Share your adventures, and relive every moment with photos, stories, and custom galleries
+          </p>
+        </section>
+
+        <section className="mt-16 w-full">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {trips.map(trip => (
+              <TripCard key={trip.id} trip={trip} onUpdate={handleUpdateTrip} />
+            ))}
+            {trips.length < 3 && (
+               <div
+                  onClick={addNextTrip}
+                  className="flex flex-col items-center justify-center bg-green-100/50 p-8 rounded-3xl shadow-sm border-2 border-dashed border-primary/20 cursor-pointer hover:bg-green-100 transition-colors group"
+                >
+                  <PlusCircle className="h-12 w-12 text-primary/50 group-hover:text-primary transition-colors" />
+                  <p className="mt-4 font-headline text-lg text-primary/80 group-hover:text-primary">Create Next Trip</p>
+                </div>
+            )}
+          </div>
+        </section>
       </main>
       
-      <footer className="text-center py-8 text-muted-foreground italic">
-        <p>Riding to places, pausing for chai, and writing down the in-betweens.</p>
+      <footer className="text-center py-16 text-muted-foreground mt-auto">
+        <NextImage src="/footer-art.svg" alt="Travel illustration" width={200} height={100} className="mx-auto" />
+        <p className="mt-4 italic">"We travel not to escape life, but for life not to escape us."</p>
+        <p className="text-sm mt-2">Made with 💚 at runtime.works 🌍✈️</p>
       </footer>
+    </div>
+  );
+}
 
-      <ImagePreview
-        open={!!previewedTrip}
-        onOpenChange={(isOpen) => { if (!isOpen) setPreviewedTrip(null); }}
-        images={previewedTrip?.images || []}
-      />
-      
-      <Dialog open={isCreateTripOpen} onOpenChange={setCreateTripOpen}>
-        <DialogContent className="sm:max-w-[425px] md:sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle className="font-headline text-2xl">Create a New Trip</DialogTitle>
-            <DialogDescription>
-              Tell us about your adventure. Give it a name, a date, and share your favorite memories.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Trip Name</Label>
-              <Input id="name" value={newTripData.name} onChange={handleNewTripChange} placeholder="e.g., Spiti, Himachal Pradesh" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="date">Date</Label>
-              <Input id="date" value={newTripData.date} onChange={handleNewTripChange} placeholder="e.g., May 2022" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea id="description" value={newTripData.description} onChange={handleNewTripChange} placeholder="A short, catchy description of your trip." />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="bestMoment">Best Moment</Label>
-              <Textarea id="bestMoment" value={newTripData.bestMoment} onChange={handleNewTripChange} placeholder="What was the highlight of your trip?" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="worstMoment">Worst Moment</Label>
-              <Textarea id="worstMoment" value={newTripData.worstMoment} onChange={handleNewTripChange} placeholder="Any funny mishaps or challenges?" />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="submit" onClick={handleCreateTrip} disabled={!newTripData.name.trim() || trips.length >= 3}>Create Trip</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
-      <Dialog open={isCaptionModalOpen} onOpenChange={(isOpen) => {
-        if (!isOpen) {
-          setCaptionModalOpen(false);
-          setNewCaption('');
-          setImageToCaption({ dataUrl: '', tripId: null });
-        }
-      }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add a Caption</DialogTitle>
-            <DialogDescription>
-              Give your new photo a memorable caption.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-              {imageToCaption.dataUrl && (
-                  <div className="relative w-full aspect-square rounded-md overflow-hidden">
-                      <NextImage src={imageToCaption.dataUrl} alt="Image preview" layout="fill" objectFit="cover" />
-                  </div>
-              )}
-              <Input 
-                  placeholder="e.g., A beautiful sunset in paradise..."
-                  value={newCaption}
-                  onChange={(e) => setNewCaption(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSaveImageWithCaption()}
-              />
-          </div>
-          <DialogFooter>
-            <Button type="submit" onClick={handleSaveImageWithCaption} disabled={!newCaption.trim()}>Save Photo</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+function TripCard({ trip, onUpdate }: { trip: TripCardData; onUpdate: (id: number, field: keyof Omit<TripCardData, 'id'>, value: string) => void }) {
+  return (
+    <div className="bg-green-100/50 p-8 rounded-3xl shadow-sm flex flex-col items-center text-center cursor-pointer hover:ring-2 hover:ring-primary/50 transition-shadow duration-300">
+      <div className="w-[200px] h-[200px] bg-white p-3 shadow-md rounded-sm border flex items-center justify-center">
+        <div className="w-full h-full border-2 border-dashed border-gray-300 rounded-sm flex items-center justify-center">
+          <PlusCircle className="h-8 w-8 text-gray-300" />
+        </div>
+      </div>
+      <div className="mt-6 w-full">
+        <EditableText
+          initialValue={trip.date}
+          onSave={(value) => onUpdate(trip.id, 'date', value)}
+          className="text-muted-foreground text-sm"
+          inputClassName="text-sm"
+        />
+        <EditableText
+          initialValue={trip.name}
+          onSave={(value) => onUpdate(trip.id, 'name', value)}
+          className="font-headline text-3xl mt-2"
+          inputClassName="text-3xl"
+        />
+        <EditableText
+          initialValue={trip.description}
+          onSave={(value) => onUpdate(trip.id, 'description', value)}
+          className="text-muted-foreground mt-1 italic"
+          inputClassName="text-base italic"
+        />
+      </div>
     </div>
   );
 }
