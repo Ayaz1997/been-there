@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, ChangeEvent, useContext, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Leaf, Award, Rocket, PlusCircle, Smile, Frown, Sparkles, ArrowLeft, Users } from 'lucide-react';
@@ -19,8 +19,9 @@ import {
 } from "@/components/ui/dialog";
 import { TripsContext, TripsProvider } from '@/context/trips-context';
 
-function TripDetailsPageContent({ params }: { params: { id: string } }) {
+function TripDetailsPageContent() {
   const router = useRouter();
+  const params = useParams();
   const { toast } = useToast();
   const { getTrip, updateTrip } = useContext(TripsContext);
 
@@ -30,7 +31,7 @@ function TripDetailsPageContent({ params }: { params: { id: string } }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const tripId = parseInt(params.id, 10);
+    const tripId = parseInt(params.id as string, 10);
     if (!isNaN(tripId)) {
       const foundTrip = getTrip(tripId);
       setTrip(foundTrip);
@@ -230,10 +231,10 @@ function TripDetailsPageContent({ params }: { params: { id: string } }) {
 }
 
 
-export default function TripDetailsPage({ params }: { params: { id: string } }) {
+export default function TripDetailsPage() {
   return (
     <TripsProvider>
-      <TripDetailsPageContent params={params} />
+      <TripDetailsPageContent />
     </TripsProvider>
   )
 }
