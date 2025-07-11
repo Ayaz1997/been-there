@@ -52,9 +52,13 @@ export const TripsProvider = ({ children }: { children: ReactNode }) => {
         const storedTrips = window.localStorage.getItem(TRIPS_STORAGE_KEY);
         if (storedTrips) {
           const parsedTrips = JSON.parse(storedTrips);
-          // Ensure we don't load an empty array from storage, always have at least one card.
-          if (parsedTrips.length > 0) {
-            setTrips(parsedTrips);
+          // Restore trips but with empty images array
+           const tripsWithEmptyImages = parsedTrips.map((trip: Omit<Trip, 'images'>) => ({
+            ...trip,
+            images: [],
+          }));
+          if (tripsWithEmptyImages.length > 0) {
+            setTrips(tripsWithEmptyImages);
           } else {
             setTrips(getInitialTrips());
           }
@@ -74,7 +78,13 @@ export const TripsProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     // Only save to localStorage if trips have been initialized
     if (isBrowser && isInitialized) {
-        window.localStorage.setItem(TRIPS_STORAGE_KEY, JSON.stringify(trips));
+        // Create a version of the trips without the image data to avoid storage quota issues.
+        const tripsToStore = trips.map(({ images, ...trip }) => trip);
+        try {
+            window.localStorage.setItem(TRIPS_STORAGE_KEY, JSON.stringify(tripsToStore));
+        } catch (error) {
+            console.error("Failed to save trips to localStorage.", error);
+        }
     }
   }, [trips, isInitialized]);
 
