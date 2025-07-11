@@ -49,6 +49,14 @@ export default {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
+        'best-moment': {
+          DEFAULT: 'hsl(var(--best-moment))',
+          foreground: 'hsl(var(--best-moment-foreground))',
+        },
+        'worst-moment': {
+          DEFAULT: 'hsl(var(--worst-moment))',
+          foreground: 'hsl(var(--worst-moment-foreground))',
+        },
         chart: {
           '1': 'hsl(var(--chart-1))',
           '2': 'hsl(var(--chart-2))',

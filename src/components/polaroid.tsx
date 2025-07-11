@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { EditableText } from './editable-text';
 
 type PolaroidProps = {
   src: string;
@@ -8,9 +9,11 @@ type PolaroidProps = {
   style?: React.CSSProperties;
   children?: React.ReactNode;
   dataAiHint?: string;
+  isEditable?: boolean;
+  onCaptionSave?: (newCaption: string) => void;
 };
 
-export function Polaroid({ src, caption, className, style, children, dataAiHint }: PolaroidProps) {
+export function Polaroid({ src, caption, className, style, children, dataAiHint, isEditable = false, onCaptionSave }: PolaroidProps) {
   return (
     <div
       className={cn(
@@ -34,9 +37,18 @@ export function Polaroid({ src, caption, className, style, children, dataAiHint 
           )}
       </div>
        <div className="h-10 flex items-center justify-center absolute bottom-5 left-0 right-0 px-4">
-          <p className="font-caption text-center text-xl text-accent truncate">
-              {caption}
-          </p>
+          {isEditable && onCaptionSave ? (
+            <EditableText 
+              initialValue={caption}
+              onSave={onCaptionSave}
+              className="font-caption text-center text-xl text-accent"
+              inputClassName="font-caption text-xl"
+            />
+          ) : (
+            <p className="font-caption text-center text-xl text-accent truncate">
+                {caption}
+            </p>
+          )}
       </div>
     </div>
   );

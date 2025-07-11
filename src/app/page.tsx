@@ -11,6 +11,7 @@ import NextImage from 'next/image';
 import { EditableText } from '@/components/editable-text';
 import { Polaroid } from '@/components/polaroid';
 import { ImageStack } from '@/components/image-stack';
+import { useRouter } from 'next/navigation';
 
 const initialImages: ImageType[] = [
     { id: 1, src: 'https://placehold.co/600x400.png', caption: '@somebody trying to do a headstand here, seconds before chaos', rotation: -3, dataAiHint: "people nature" },
@@ -141,10 +142,20 @@ export default function Home() {
 
 
 function TripCard({ trip, onUpdate }: { trip: Trip; onUpdate: (id: number, field: keyof Omit<Trip, 'id' | 'images'>, value: string) => void }) {
+  const router = useRouter();
   const hasImages = trip.images && trip.images.length > 0;
+  
+  const isTripDataFilled = trip.name !== 'Your trip name' && trip.description !== "Your trip's short story goes here" && trip.date !== 'Date';
+
+  const handleCardClick = () => {
+    if (isTripDataFilled) {
+      router.push(`/trip/${trip.id}`);
+    }
+  };
+
 
   return (
-    <div className="bg-green-100/50 p-8 rounded-3xl shadow-sm flex flex-col items-center text-center cursor-pointer hover:ring-2 hover:ring-primary/50 transition-shadow duration-300">
+    <div onClick={handleCardClick} className={`bg-green-100/50 p-8 rounded-3xl shadow-sm flex flex-col items-center text-center ${isTripDataFilled ? 'cursor-pointer hover:ring-2 hover:ring-primary/50' : ''} transition-shadow duration-300`}>
       <div className="w-full h-[320px] flex items-center justify-center">
         {hasImages ? (
           <ImageStack images={trip.images} />
