@@ -6,7 +6,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Leaf, Award, Rocket, Copy, PlusCircle, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { type Trip } from '@/types';
-import NextImage from 'next/image';
 import { EditableText } from '@/components/editable-text';
 import { Polaroid } from '@/components/polaroid';
 import { ImageStack } from '@/components/image-stack';

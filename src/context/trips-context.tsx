@@ -1,13 +1,7 @@
 'use client';
 
 import React, { createContext, useState, ReactNode, useCallback, useEffect } from 'react';
-import { type Trip, type Image as ImageType } from '@/types';
-
-const initialImages: ImageType[] = [
-    { id: 1, src: 'https://placehold.co/600x400.png', caption: '@somebody trying to do a headstand here, seconds before chaos', rotation: -3, dataAiHint: "people nature" },
-    { id: 2, src: 'https://placehold.co/600x400.png', caption: 'A beautiful landscape', rotation: 5, dataAiHint: "landscape mountains" },
-    { id: 3, src: 'https://placehold.co/600x400.png', caption: 'Chai stop', rotation: -2, dataAiHint: "tea cup" },
-];
+import { type Trip } from '@/types';
 
 const initialTripData: Omit<Trip, 'id' | 'images'> = {
   date: 'Date',
@@ -16,16 +10,6 @@ const initialTripData: Omit<Trip, 'id' | 'images'> = {
   bestMoment: 'Click to start adding some of your best memories.',
   worstMoment: 'Click to start adding some of your worst memories.',
 };
-
-const populatedTrip: Trip = {
-    id: 1,
-    date: 'May 2022',
-    name: 'Let\'s head to Himachal and explore the stunning Spiti...',
-    description: '"A week of dusty roads, chai, and snowfall mornings. A week of dusty roads, chai, and snowfall mornings."',
-    images: initialImages,
-    bestMoment: 'Waking up to a blanket of fresh snow outside our window.',
-    worstMoment: 'Getting a flat tire in the middle of nowhere.',
-}
 
 type TripsContextType = {
   trips: Trip[];
@@ -46,15 +30,26 @@ export const TripsContext = createContext<TripsContextType>({
 const isBrowser = typeof window !== 'undefined';
 const TRIPS_STORAGE_KEY = 'beenthere-trips';
 
+const getInitialTrips = (): Trip[] => {
+  const newTrip: Trip = {
+    ...initialTripData,
+    id: Date.now(),
+    images: [],
+  };
+  return [newTrip];
+}
+
+
 export const TripsProvider = ({ children }: { children: ReactNode }) => {
   const [trips, setTrips] = useState<Trip[]>(() => {
-    if (!isBrowser) return [populatedTrip];
+    if (!isBrowser) return getInitialTrips();
     try {
       const storedTrips = window.localStorage.getItem(TRIPS_STORAGE_KEY);
-      return storedTrips ? JSON.parse(storedTrips) : [populatedTrip];
+      // If nothing is in storage, start with a fresh trip. Otherwise, parse what's there.
+      return storedTrips ? JSON.parse(storedTrips) : getInitialTrips();
     } catch (error) {
-      console.error("Failed to parse trips from localStorage", error);
-      return [populatedTrip];
+      console.error("Failed to parse trips from localStorage, starting fresh.", error);
+      return getInitialTrips();
     }
   });
 
@@ -68,6 +63,11 @@ export const TripsProvider = ({ children }: { children: ReactNode }) => {
     setTrips(current => {
       // Prevent adding more than 5 trips total
       if (current.length >= 5) return current;
+      
+      const hasBlankTrip = current.some(
+        (trip) => !trip.name || trip.name === 'Your trip name'
+      );
+      if(hasBlankTrip) return current;
 
       const newTrip: Trip = {
         ...initialTripData,
