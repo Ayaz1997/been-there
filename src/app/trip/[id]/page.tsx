@@ -4,8 +4,7 @@ import { useState, useRef, ChangeEvent, useContext, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Leaf, Award, Rocket, PlusCircle, Smile, Frown, Sparkles, ArrowLeft, Users } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Leaf, Award, Rocket, PlusCircle, Smile, Frown, ArrowLeft, Users } from 'lucide-react';
 import { type Trip, type Image as ImageType } from '@/types';
 import NextImage from 'next/image';
 import { EditableText } from '@/components/editable-text';
@@ -18,32 +17,35 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { TripsContext, TripsProvider } from '@/context/trips-context';
+import { Input } from '@/components/ui/input';
 
 function TripDetailsPageContent() {
   const router = useRouter();
   const params = useParams();
-  const { toast } = useToast();
   const { getTrip, updateTrip } = useContext(TripsContext);
 
   const [trip, setTrip] = useState<Trip | undefined>(undefined);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newImage, setNewImage] = useState<{ src: string; caption: string } | null>(null);
+  const [newImageSrc, setNewImageSrc] = useState<string | null>(null);
+  const [newImageCaption, setNewImageCaption] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (params.id) {
         const tripId = parseInt(params.id as string, 10);
         if (!isNaN(tripId)) {
-        const foundTrip = getTrip(tripId);
-        setTrip(foundTrip);
+          const foundTrip = getTrip(tripId);
+          setTrip(foundTrip);
         }
     }
+    setIsLoading(false);
   }, [params.id, getTrip]);
   
   const handleUpdate = (field: keyof Omit<Trip, 'id' | 'images'>, value: string) => {
     if (trip) {
-      const newTrip = { ...trip, [field]: value };
-      setTrip(newTrip);
+      const newTripData = { ...trip, [field]: value };
+      setTrip(newTripData); // Update local state for immediate feedback
       updateTrip(trip.id, { [field]: value });
     }
   };
@@ -53,8 +55,8 @@ function TripDetailsPageContent() {
       const updatedImages = trip.images.map(img => 
         img.id === imageId ? { ...img, caption: newCaption } : img
       );
-      const newTrip = {...trip, images: updatedImages};
-      setTrip(newTrip);
+      const newTripData = {...trip, images: updatedImages};
+      setTrip(newTripData);
       updateTrip(trip.id, { images: updatedImages });
     }
   };
@@ -69,31 +71,40 @@ function TripDetailsPageContent() {
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result as string;
-        setNewImage({ src: result, caption: "Your awesome caption goes here......" });
+        setNewImageSrc(result);
+        setNewImageCaption("Your awesome caption goes here......");
         setIsModalOpen(true);
       };
       reader.readAsDataURL(file);
     }
+    // Reset file input to allow uploading the same file again
+    event.target.value = '';
   };
 
-  const handleCaptionSave = () => {
-    if (trip && newImage && trip.images.length < 5) {
+  const handleSaveImage = () => {
+    if (trip && newImageSrc && trip.images.length < 5) {
       const newImageWithId: ImageType = {
         id: Date.now(),
-        src: newImage.src,
-        caption: newImage.caption,
+        src: newImageSrc,
+        caption: newImageCaption,
         rotation: Math.floor(Math.random() * 21) - 10, // -10 to 10
       };
       const updatedImages = [...trip.images, newImageWithId];
-      setTrip({ ...trip, images: updatedImages });
+      const newTripData = { ...trip, images: updatedImages };
+      setTrip(newTripData);
       updateTrip(trip.id, { images: updatedImages });
     }
     setIsModalOpen(false);
-    setNewImage(null);
+    setNewImageSrc(null);
+    setNewImageCaption('');
   };
   
+  if (isLoading) {
+    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+  }
+  
   if (!trip) {
-    return <div>Loading trip...</div>;
+    return <div className="flex h-screen items-center justify-center">Trip not found.</div>;
   }
 
   const hasImages = trip.images.length > 0;
@@ -143,6 +154,7 @@ function TripDetailsPageContent() {
                     onSave={(value) => handleUpdate('bestMoment', value)}
                     className="mt-2 text-sm"
                     inputClassName="text-sm"
+                    isTextarea
                 />
                 <p className="text-xs text-best-moment-foreground/70 mt-4 flex items-center gap-1.5"><Users size={14}/> Use "@" to tag your trip buddies to collaborate.</p>
             </div>
@@ -153,6 +165,7 @@ function TripDetailsPageContent() {
                     onSave={(value) => handleUpdate('worstMoment', value)}
                     className="mt-2 text-sm"
                     inputClassName="text-sm"
+                    isTextarea
                 />
                 <p className="text-xs text-worst-moment-foreground/70 mt-4 flex items-center gap-1.5"><Users size={14}/> Use "@" to tag your trip buddies to collaborate.</p>
             </div>
@@ -194,25 +207,31 @@ function TripDetailsPageContent() {
         <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
 
          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-            <DialogContent className="max-w-sm">
+            <DialogContent className="max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Add your image</DialogTitle>
+                    <DialogTitle>Add your moment</DialogTitle>
                 </DialogHeader>
-                {newImage && (
+                {newImageSrc && (
                     <div className="flex flex-col items-center">
                         <NextImage
-                            src={newImage.src}
+                            src={newImageSrc}
                             alt="Preview"
-                            width={248}
-                            height={248}
+                            width={300}
+                            height={300}
                             className="w-full h-auto object-cover aspect-square rounded-sm"
                         />
-                        <p className="mt-4 font-caption text-xl text-accent">"{newImage.caption}"</p>
+                        <Input 
+                            type="text" 
+                            value={newImageCaption}
+                            onChange={(e) => setNewImageCaption(e.target.value)}
+                            placeholder="Your awesome caption..."
+                            className="mt-4 font-caption text-xl text-center"
+                        />
                     </div>
                 )}
                 <DialogFooter>
                     <Button onClick={() => setIsModalOpen(false)} variant="ghost">Cancel</Button>
-                    <Button onClick={handleCaptionSave}>Save</Button>
+                    <Button onClick={handleSaveImage}>Save</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -223,7 +242,6 @@ function TripDetailsPageContent() {
             <Button variant="link" onClick={() => router.push('/')} className="text-muted-foreground">
                 <ArrowLeft size={16} className="mr-2" /> Back to Trips
             </Button>
-            <NextImage src="/footer-art.svg" alt="Travel illustration" width={200} height={100} className="mx-auto mt-8" />
             <p className="mt-4 italic">"We travel not to escape life, but for life not to escape us."</p>
             <p className="text-sm mt-2">Made with 💚 at runtime.works 🌍✈️</p>
       </footer>

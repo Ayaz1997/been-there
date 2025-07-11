@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useState, ReactNode, useCallback } from 'react';
+import React, { createContext, useState, ReactNode, useCallback, useEffect } from 'react';
 import { type Trip, type Image as ImageType } from '@/types';
 
 const initialImages: ImageType[] = [
@@ -43,11 +43,32 @@ export const TripsContext = createContext<TripsContextType>({
   getTrip: () => undefined,
 });
 
+const isBrowser = typeof window !== 'undefined';
+const TRIPS_STORAGE_KEY = 'beenthere-trips';
+
 export const TripsProvider = ({ children }: { children: ReactNode }) => {
-  const [trips, setTrips] = useState<Trip[]>([populatedTrip]);
+  const [trips, setTrips] = useState<Trip[]>(() => {
+    if (!isBrowser) return [populatedTrip];
+    try {
+      const storedTrips = window.localStorage.getItem(TRIPS_STORAGE_KEY);
+      return storedTrips ? JSON.parse(storedTrips) : [populatedTrip];
+    } catch (error) {
+      console.error("Failed to parse trips from localStorage", error);
+      return [populatedTrip];
+    }
+  });
+
+  useEffect(() => {
+    if (isBrowser) {
+        window.localStorage.setItem(TRIPS_STORAGE_KEY, JSON.stringify(trips));
+    }
+  }, [trips]);
 
   const addTrip = useCallback(() => {
     setTrips(current => {
+      // Prevent adding more than 5 trips total
+      if (current.length >= 5) return current;
+
       const newTrip: Trip = {
         ...initialTripData,
         id: Date.now(),
@@ -69,7 +90,7 @@ export const TripsProvider = ({ children }: { children: ReactNode }) => {
     );
   }, []);
 
-  const getTrip = useCallback((id: number) => {
+  const getTrip = useCallback((id: number): Trip | undefined => {
     return trips.find(trip => trip.id === id);
   },[trips]);
 

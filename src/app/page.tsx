@@ -18,12 +18,10 @@ function HomeContent() {
   const { toast } = useToast();
   const router = useRouter();
   
+  // This effect ensures there's always a blank "new trip" card available.
   useEffect(() => {
-    // Ensure there is always one blank trip card if there are less than 5 trips and no existing blank one
     const hasBlankTrip = trips.some(
-      (trip) =>
-        trip.name === 'Your trip name' &&
-        trip.description === "Your trip's short story goes here"
+      (trip) => !trip.name || trip.name === 'Your trip name'
     );
     if (trips.length < 5 && !hasBlankTrip) {
       addTrip();
@@ -101,7 +99,6 @@ function HomeContent() {
       </main>
       
       <footer className="text-center py-16 text-muted-foreground mt-auto">
-        <NextImage src="/footer-art.svg" alt="Travel illustration" width={200} height={100} className="mx-auto" />
         <p className="mt-4 italic">"We travel not to escape life, but for life not to escape us."</p>
         <p className="text-sm mt-2">Made with 💚 at runtime.works 🌍✈️</p>
       </footer>
@@ -120,7 +117,6 @@ function TripCard({ trip, onUpdate, onDelete }: { trip: Trip; onUpdate: (id: num
       router.push(`/trip/${trip.id}`);
     }
   };
-
 
   return (
     <div onClick={handleCardClick} className={`relative group bg-green-100/50 p-8 rounded-3xl shadow-sm flex flex-col items-center text-center ${isTripDataFilled ? 'cursor-pointer hover:ring-2 hover:ring-primary/50' : 'cursor-default'} transition-shadow duration-300 min-h-[550px]`}>
