@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useState, ReactNode } from 'react';
+import React, { createContext, useState, ReactNode, useCallback } from 'react';
 import { type Trip, type Image as ImageType } from '@/types';
 
 const initialImages: ImageType[] = [
@@ -9,7 +9,7 @@ const initialImages: ImageType[] = [
     { id: 3, src: 'https://placehold.co/600x400.png', caption: 'Chai stop', rotation: -2, dataAiHint: "tea cup" },
 ];
 
-const initialTripData: Omit<Trip, 'id'> = {
+const initialTripData: Omit<Trip, 'id' | 'images'> = {
   date: 'Date',
   name: 'Your trip name',
   description: "Your trip's short story goes here",
@@ -45,27 +45,34 @@ export const TripsContext = createContext<TripsContextType>({
 });
 
 export const TripsProvider = ({ children }: { children: ReactNode }) => {
-  const [trips, setTrips] = useState<Trip[]>([populatedTrip, { ...initialTripData, id: Date.now() }]);
+  const [trips, setTrips] = useState<Trip[]>([populatedTrip]);
 
-  const addTrip = () => {
-    setTrips(current => [...current, { ...initialTripData, id: Date.now() }]);
-  };
+  const addTrip = useCallback(() => {
+    setTrips(current => {
+      const newTrip: Trip = {
+        ...initialTripData,
+        id: Date.now(),
+        images: [],
+      };
+      return [...current, newTrip];
+    });
+  }, []);
 
-  const deleteTrip = (id: number) => {
+  const deleteTrip = useCallback((id: number) => {
     setTrips(currentTrips => currentTrips.filter(trip => trip.id !== id));
-  };
+  }, []);
 
-  const updateTrip = (id: number, updates: Partial<Omit<Trip, 'id'>>) => {
+  const updateTrip = useCallback((id: number, updates: Partial<Omit<Trip, 'id'>>) => {
     setTrips(currentTrips =>
       currentTrips.map(trip =>
         trip.id === id ? { ...trip, ...updates } : trip
       )
     );
-  };
+  }, []);
 
-  const getTrip = (id: number) => {
+  const getTrip = useCallback((id: number) => {
     return trips.find(trip => trip.id === id);
-  };
+  },[trips]);
 
   return (
     <TripsContext.Provider value={{ trips, addTrip, deleteTrip, updateTrip, getTrip }}>

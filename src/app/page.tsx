@@ -1,6 +1,6 @@
 'use client';
 
-import { useContext } from 'react';
+import { useContext, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Leaf, Award, Rocket, Copy, PlusCircle, Trash2 } from 'lucide-react';
@@ -18,20 +18,21 @@ function HomeContent() {
   const { toast } = useToast();
   const router = useRouter();
   
+  useEffect(() => {
+    // Ensure there is always one blank trip card if there are less than 5 trips and no existing blank one
+    const hasBlankTrip = trips.some(
+      (trip) =>
+        trip.name === 'Your trip name' &&
+        trip.description === "Your trip's short story goes here"
+    );
+    if (trips.length < 5 && !hasBlankTrip) {
+      addTrip();
+    }
+  }, [trips, addTrip]);
+
+
   const handleUpdateTrip = (id: number, field: keyof Omit<Trip, 'id' | 'images'>, value: string) => {
     updateTrip(id, { [field]: value });
-  };
-
-  const handleAddTrip = () => {
-    if (trips.length < 5) {
-      addTrip();
-    } else {
-      toast({
-        title: "Maximum trips reached",
-        description: "You can only create up to 5 trips for now.",
-        variant: "destructive",
-      });
-    }
   };
 
   const handleDeleteTrip = (e: React.MouseEvent, id: number) => {
@@ -95,15 +96,6 @@ function HomeContent() {
             {trips.map(trip => (
               <TripCard key={trip.id} trip={trip} onUpdate={handleUpdateTrip} onDelete={(e) => handleDeleteTrip(e, trip.id)} />
             ))}
-            {trips.length < 5 && (
-               <div
-                  onClick={handleAddTrip}
-                  className="flex flex-col items-center justify-center bg-green-100/50 p-8 rounded-3xl shadow-sm border-2 border-dashed border-primary/20 cursor-pointer hover:bg-green-100 transition-colors group min-h-[550px]"
-                >
-                  <PlusCircle className="h-12 w-12 text-primary/50 group-hover:text-primary transition-colors" />
-                  <p className="mt-4 font-headline text-lg text-primary/80 group-hover:text-primary">Create Next Trip</p>
-                </div>
-            )}
           </div>
         </section>
       </main>
@@ -131,16 +123,18 @@ function TripCard({ trip, onUpdate, onDelete }: { trip: Trip; onUpdate: (id: num
 
 
   return (
-    <div onClick={handleCardClick} className={`relative group bg-green-100/50 p-8 rounded-3xl shadow-sm flex flex-col items-center text-center ${isTripDataFilled ? 'cursor-pointer hover:ring-2 hover:ring-primary/50' : ''} transition-shadow duration-300`}>
-      <Button size="icon" variant="destructive" className="absolute top-4 right-4 h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" onClick={onDelete}>
-        <Trash2 className="h-4 w-4" />
-      </Button>
+    <div onClick={handleCardClick} className={`relative group bg-green-100/50 p-8 rounded-3xl shadow-sm flex flex-col items-center text-center ${isTripDataFilled ? 'cursor-pointer hover:ring-2 hover:ring-primary/50' : 'cursor-default'} transition-shadow duration-300 min-h-[550px]`}>
+       {isTripDataFilled && (
+         <Button size="icon" variant="destructive" className="absolute top-4 right-4 h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" onClick={onDelete}>
+            <Trash2 className="h-4 w-4" />
+         </Button>
+       )}
       <div className="w-full h-[320px] flex items-center justify-center">
         {hasImages ? (
           <ImageStack images={trip.images} />
         ) : (
           <div className="w-[280px]">
-            <Polaroid src="" caption='"Your awesome caption goes here......"'>
+             <Polaroid src="" caption={isTripDataFilled ? 'Click to add moments!' : '"Your awesome caption goes here......"'} isEditable={false}>
               <div className="w-full h-full border-2 border-dashed border-gray-300 rounded-sm flex items-center justify-center bg-gray-50/50">
                   <PlusCircle className="h-8 w-8 text-gray-300" />
               </div>
