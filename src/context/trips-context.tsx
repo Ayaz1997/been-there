@@ -31,6 +31,7 @@ const populatedTrip: Trip = {
 type TripsContextType = {
   trips: Trip[];
   addTrip: () => void;
+  deleteTrip: (id: number) => void;
   updateTrip: (id: number, updates: Partial<Omit<Trip, 'id'>>) => void;
   getTrip: (id: number) => Trip | undefined;
 };
@@ -38,6 +39,7 @@ type TripsContextType = {
 export const TripsContext = createContext<TripsContextType>({
   trips: [],
   addTrip: () => {},
+  deleteTrip: () => {},
   updateTrip: () => {},
   getTrip: () => undefined,
 });
@@ -47,6 +49,10 @@ export const TripsProvider = ({ children }: { children: ReactNode }) => {
 
   const addTrip = () => {
     setTrips(current => [...current, { ...initialTripData, id: Date.now() }]);
+  };
+
+  const deleteTrip = (id: number) => {
+    setTrips(currentTrips => currentTrips.filter(trip => trip.id !== id));
   };
 
   const updateTrip = (id: number, updates: Partial<Omit<Trip, 'id'>>) => {
@@ -62,7 +68,7 @@ export const TripsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <TripsContext.Provider value={{ trips, addTrip, updateTrip, getTrip }}>
+    <TripsContext.Provider value={{ trips, addTrip, deleteTrip, updateTrip, getTrip }}>
       {children}
     </TripsContext.Provider>
   );

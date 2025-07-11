@@ -3,7 +3,7 @@
 import { useContext } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Leaf, Award, Rocket, Copy, PlusCircle } from 'lucide-react';
+import { Leaf, Award, Rocket, Copy, PlusCircle, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { type Trip } from '@/types';
 import NextImage from 'next/image';
@@ -14,7 +14,7 @@ import { useRouter } from 'next/navigation';
 import { TripsContext, TripsProvider } from '@/context/trips-context';
 
 function HomeContent() {
-  const { trips, addTrip, updateTrip } = useContext(TripsContext);
+  const { trips, addTrip, updateTrip, deleteTrip } = useContext(TripsContext);
   const { toast } = useToast();
   const router = useRouter();
   
@@ -32,6 +32,11 @@ function HomeContent() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleDeleteTrip = (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
+    deleteTrip(id);
   };
 
   const copyToClipboard = () => {
@@ -88,7 +93,7 @@ function HomeContent() {
         <section className="mt-16 w-full">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {trips.map(trip => (
-              <TripCard key={trip.id} trip={trip} onUpdate={handleUpdateTrip} />
+              <TripCard key={trip.id} trip={trip} onUpdate={handleUpdateTrip} onDelete={(e) => handleDeleteTrip(e, trip.id)} />
             ))}
             {trips.length < 5 && (
                <div
@@ -112,7 +117,7 @@ function HomeContent() {
   );
 }
 
-function TripCard({ trip, onUpdate }: { trip: Trip; onUpdate: (id: number, field: keyof Omit<Trip, 'id' | 'images'>, value: string) => void }) {
+function TripCard({ trip, onUpdate, onDelete }: { trip: Trip; onUpdate: (id: number, field: keyof Omit<Trip, 'id' | 'images'>, value: string) => void; onDelete: (e: React.MouseEvent) => void; }) {
   const router = useRouter();
   const hasImages = trip.images && trip.images.length > 0;
   
@@ -126,7 +131,10 @@ function TripCard({ trip, onUpdate }: { trip: Trip; onUpdate: (id: number, field
 
 
   return (
-    <div onClick={handleCardClick} className={`bg-green-100/50 p-8 rounded-3xl shadow-sm flex flex-col items-center text-center ${isTripDataFilled ? 'cursor-pointer hover:ring-2 hover:ring-primary/50' : ''} transition-shadow duration-300`}>
+    <div onClick={handleCardClick} className={`relative group bg-green-100/50 p-8 rounded-3xl shadow-sm flex flex-col items-center text-center ${isTripDataFilled ? 'cursor-pointer hover:ring-2 hover:ring-primary/50' : ''} transition-shadow duration-300`}>
+      <Button size="icon" variant="destructive" className="absolute top-4 right-4 h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" onClick={onDelete}>
+        <Trash2 className="h-4 w-4" />
+      </Button>
       <div className="w-full h-[320px] flex items-center justify-center">
         {hasImages ? (
           <ImageStack images={trip.images} />
