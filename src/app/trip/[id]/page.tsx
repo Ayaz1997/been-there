@@ -31,10 +31,12 @@ function TripDetailsPageContent() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const tripId = parseInt(params.id as string, 10);
-    if (!isNaN(tripId)) {
-      const foundTrip = getTrip(tripId);
-      setTrip(foundTrip);
+    if (params.id) {
+        const tripId = parseInt(params.id as string, 10);
+        if (!isNaN(tripId)) {
+        const foundTrip = getTrip(tripId);
+        setTrip(foundTrip);
+        }
     }
   }, [params.id, getTrip]);
   
