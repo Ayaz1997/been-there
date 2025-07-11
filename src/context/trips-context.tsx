@@ -13,7 +13,6 @@ const initialTripData: Omit<Trip, 'id' | 'images'> = {
   date: 'Date',
   name: 'Your trip name',
   description: "Your trip's short story goes here",
-  images: [],
   bestMoment: 'Click to start adding some of your best memories.',
   worstMoment: 'Click to start adding some of your worst memories.',
 };
