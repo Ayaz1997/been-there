@@ -50,12 +50,12 @@ export default function Home() {
   };
 
   const addNextTrip = () => {
-    if (trips.length < 3) {
+    if (trips.length < 5) {
       setTrips(current => [...current, { ...initialTripData, id: Date.now() }]);
     } else {
       toast({
         title: "Maximum trips reached",
-        description: "You can only create up to 3 trips for now.",
+        description: "You can only create up to 5 trips for now.",
         variant: "destructive",
       });
     }
@@ -87,7 +87,7 @@ export default function Home() {
         </nav>
       </header>
 
-      <main className="flex flex-col items-center w-full max-w-4xl mx-auto mt-12 md:mt-20">
+      <main className="flex flex-col items-center w-full max-w-7xl mx-auto mt-12 md:mt-20">
         <div className="bg-green-100/50 p-8 rounded-3xl shadow-sm w-full max-w-md">
           <div className="flex flex-col items-center text-center">
             <Avatar className="w-24 h-24 border-4 border-white shadow-md">
@@ -113,14 +113,14 @@ export default function Home() {
         </section>
 
         <section className="mt-16 w-full">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {trips.map(trip => (
               <TripCard key={trip.id} trip={trip} onUpdate={handleUpdateTrip} />
             ))}
-            {trips.length < 3 && (
+            {trips.length < 5 && (
                <div
                   onClick={addNextTrip}
-                  className="flex flex-col items-center justify-center bg-green-100/50 p-8 rounded-3xl shadow-sm border-2 border-dashed border-primary/20 cursor-pointer hover:bg-green-100 transition-colors group"
+                  className="flex flex-col items-center justify-center bg-green-100/50 p-8 rounded-3xl shadow-sm border-2 border-dashed border-primary/20 cursor-pointer hover:bg-green-100 transition-colors group min-h-[550px]"
                 >
                   <PlusCircle className="h-12 w-12 text-primary/50 group-hover:text-primary transition-colors" />
                   <p className="mt-4 font-headline text-lg text-primary/80 group-hover:text-primary">Create Next Trip</p>
