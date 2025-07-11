@@ -5,29 +5,33 @@ import { type Image } from '@/types';
 
 type ImageStackProps = {
   images: Image[];
-  onStackClick: () => void;
 };
 
-export function ImageStack({ images, onStackClick }: ImageStackProps) {
+export function ImageStack({ images }: ImageStackProps) {
+  // Show a maximum of 5 images in the stack
+  const visibleImages = images.slice(0, 5);
+
   return (
     <div
-      className="relative w-[320px] h-[400px] mx-auto cursor-pointer group"
-      onClick={onStackClick}
+      className="relative w-[320px] h-[320px] flex items-center justify-center group"
       role="button"
       aria-label="Image stack, click to view in gallery"
     >
-      {images.map((image, index) => (
+      {visibleImages.map((image, index) => (
         <div
           key={image.id}
-          className="absolute top-1/2 left-1/2 transition-transform duration-300 ease-out group-hover:scale-105 group-hover:shadow-2xl"
+          className="absolute transition-transform duration-300 ease-out group-hover:scale-105"
           style={{
-            transform: `translate(-50%, -50%) rotate(${image.rotation}deg)`,
+            transform: `translate(-50%, -50%) rotate(${image.rotation}deg) `,
             zIndex: index,
+            top: '50%',
+            left: '50%',
           }}
         >
           <Polaroid
             src={image.src}
             caption={image.caption}
+            dataAiHint={image.dataAiHint}
           />
         </div>
       ))}

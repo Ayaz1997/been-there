@@ -6,9 +6,11 @@ type PolaroidProps = {
   caption: string;
   className?: string;
   style?: React.CSSProperties;
+  children?: React.ReactNode;
+  dataAiHint?: string;
 };
 
-export function Polaroid({ src, caption, className, style }: PolaroidProps) {
+export function Polaroid({ src, caption, className, style, children, dataAiHint }: PolaroidProps) {
   return (
     <div
       className={cn(
@@ -17,17 +19,22 @@ export function Polaroid({ src, caption, className, style }: PolaroidProps) {
       )}
       style={style}
     >
-      <div className="bg-gray-100">
-          <Image
-            src={src}
-            alt={caption}
-            width={248}
-            height={248}
-            className="w-full h-auto object-cover aspect-square"
-          />
+      <div className="bg-gray-100 aspect-square">
+          {src ? (
+            <Image
+                src={src}
+                alt={caption}
+                width={248}
+                height={248}
+                className="w-full h-auto object-cover aspect-square"
+                data-ai-hint={dataAiHint}
+            />
+          ) : (
+            children
+          )}
       </div>
        <div className="h-10 flex items-center justify-center absolute bottom-5 left-0 right-0 px-4">
-          <p className="font-caption text-center text-3xl text-accent truncate">
+          <p className="font-caption text-center text-xl text-accent truncate">
               {caption}
           </p>
       </div>

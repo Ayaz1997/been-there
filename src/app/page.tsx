@@ -6,29 +6,42 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Leaf, Award, Rocket, Copy, PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { type Trip } from '@/types';
+import { type Trip, type Image as ImageType } from '@/types';
 import NextImage from 'next/image';
 import { EditableText } from '@/components/editable-text';
+import { Polaroid } from '@/components/polaroid';
+import { ImageStack } from '@/components/image-stack';
 
-type TripCardData = {
-  id: number;
-  date: string;
-  name: string;
-  description: string;
-};
+const initialImages: ImageType[] = [
+    { id: 1, src: 'https://placehold.co/600x400.png', caption: '@somebody trying to do a headstand here, seconds before chaos', rotation: -3, dataAiHint: "people nature" },
+    { id: 2, src: 'https://placehold.co/600x400.png', caption: 'A beautiful landscape', rotation: 5, dataAiHint: "landscape mountains" },
+    { id: 3, src: 'https://placehold.co/600x400.png', caption: 'Chai stop', rotation: -2, dataAiHint: "tea cup" },
+];
 
-const initialTripData: TripCardData = {
-  id: Date.now(),
+const initialTripData: Omit<Trip, 'id'> = {
   date: 'Date',
   name: 'Your trip name',
   description: "Your trip's short story goes here",
+  images: [],
+  bestMoment: '',
+  worstMoment: '',
 };
+
+const populatedTrip: Trip = {
+    id: 1,
+    date: 'May 2022',
+    name: 'Let\'s head to Himachal and explore the stunning Spiti...',
+    description: '"A week of dusty roads, chai, and snowfall mornings. A week of dusty roads, chai, and snowfall mornings."',
+    images: initialImages,
+    bestMoment: '',
+    worstMoment: '',
+}
 
 export default function Home() {
   const { toast } = useToast();
-  const [trips, setTrips] = useState<TripCardData[]>([initialTripData]);
+  const [trips, setTrips] = useState<Trip[]>([populatedTrip, { ...initialTripData, id: Date.now() }]);
 
-  const handleUpdateTrip = (id: number, field: keyof Omit<TripCardData, 'id'>, value: string) => {
+  const handleUpdateTrip = (id: number, field: keyof Omit<Trip, 'id' | 'images'>, value: string) => {
     setTrips(currentTrips =>
       currentTrips.map(trip =>
         trip.id === id ? { ...trip, [field]: value } : trip
@@ -100,7 +113,7 @@ export default function Home() {
         </section>
 
         <section className="mt-16 w-full">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {trips.map(trip => (
               <TripCard key={trip.id} trip={trip} onUpdate={handleUpdateTrip} />
             ))}
@@ -127,13 +140,23 @@ export default function Home() {
 }
 
 
-function TripCard({ trip, onUpdate }: { trip: TripCardData; onUpdate: (id: number, field: keyof Omit<TripCardData, 'id'>, value: string) => void }) {
+function TripCard({ trip, onUpdate }: { trip: Trip; onUpdate: (id: number, field: keyof Omit<Trip, 'id' | 'images'>, value: string) => void }) {
+  const hasImages = trip.images && trip.images.length > 0;
+
   return (
     <div className="bg-green-100/50 p-8 rounded-3xl shadow-sm flex flex-col items-center text-center cursor-pointer hover:ring-2 hover:ring-primary/50 transition-shadow duration-300">
-      <div className="w-[200px] h-[200px] bg-white p-3 shadow-md rounded-sm border flex items-center justify-center">
-        <div className="w-full h-full border-2 border-dashed border-gray-300 rounded-sm flex items-center justify-center">
-          <PlusCircle className="h-8 w-8 text-gray-300" />
-        </div>
+      <div className="w-full h-[320px] flex items-center justify-center">
+        {hasImages ? (
+          <ImageStack images={trip.images} />
+        ) : (
+          <div className="w-[280px]">
+            <Polaroid src="" caption='"Your awesome caption goes here......"'>
+              <div className="w-full h-full border-2 border-dashed border-gray-300 rounded-sm flex items-center justify-center bg-gray-50/50">
+                  <PlusCircle className="h-8 w-8 text-gray-300" />
+              </div>
+            </Polaroid>
+          </div>
+        )}
       </div>
       <div className="mt-6 w-full">
         <EditableText

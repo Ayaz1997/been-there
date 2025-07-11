@@ -3,6 +3,7 @@ export type Image = {
   src: string;
   caption: string;
   rotation: number;
+  dataAiHint?: string;
 };
 
 export type Trip = {
