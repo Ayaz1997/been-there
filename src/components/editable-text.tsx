@@ -17,6 +17,10 @@ export function EditableText({ initialValue, onSave, className, inputClassName }
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    setValue(initialValue);
+  }, [initialValue]);
+
+  useEffect(() => {
     if (isEditing) {
       inputRef.current?.focus();
       inputRef.current?.select();

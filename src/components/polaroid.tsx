@@ -41,8 +41,8 @@ export function Polaroid({ src, caption, className, style, children, dataAiHint,
             <EditableText 
               initialValue={caption}
               onSave={onCaptionSave}
-              className="font-caption text-center text-xl text-accent"
-              inputClassName="font-caption text-xl"
+              className="font-caption text-center text-xl text-accent w-full"
+              inputClassName="font-caption text-xl text-center"
             />
           ) : (
             <p className="font-caption text-center text-xl text-accent truncate">

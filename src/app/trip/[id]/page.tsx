@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, ChangeEvent } from 'react';
+import { useState, useRef, ChangeEvent, useContext, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -17,33 +17,42 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { TripsContext, TripsProvider } from '@/context/trips-context';
 
-// Mock data - in a real app, this would be fetched based on the [id]
-const mockTrips: Trip[] = [
-    {
-        id: 1,
-        date: 'May 2022',
-        name: 'Spiti, Himachal',
-        description: '"A week of dusty roads, chai, and snowfall mornings."',
-        images: [],
-        bestMoment: 'Click to start adding some of your best memories.',
-        worstMoment: 'Click to start adding some of your worst memories.',
-    },
-];
-
-
-export default function TripDetailsPage({ params }: { params: { id: string } }) {
+function TripDetailsPageContent({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { toast } = useToast();
-  const [trip, setTrip] = useState<Trip | undefined>(mockTrips.find(t => t.id.toString() === params.id));
+  const { getTrip, updateTrip } = useContext(TripsContext);
+
+  const [trip, setTrip] = useState<Trip | undefined>(undefined);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newImage, setNewImage] = useState<{ src: string; caption: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-
+  useEffect(() => {
+    const tripId = parseInt(params.id, 10);
+    if (!isNaN(tripId)) {
+      const foundTrip = getTrip(tripId);
+      setTrip(foundTrip);
+    }
+  }, [params.id, getTrip]);
+  
   const handleUpdate = (field: keyof Omit<Trip, 'id' | 'images'>, value: string) => {
     if (trip) {
-      setTrip({ ...trip, [field]: value });
+      const newTrip = { ...trip, [field]: value };
+      setTrip(newTrip);
+      updateTrip(trip.id, { [field]: value });
+    }
+  };
+
+  const handleCaptionUpdate = (imageId: number, newCaption: string) => {
+    if(trip) {
+      const updatedImages = trip.images.map(img => 
+        img.id === imageId ? { ...img, caption: newCaption } : img
+      );
+      const newTrip = {...trip, images: updatedImages};
+      setTrip(newTrip);
+      updateTrip(trip.id, { images: updatedImages });
     }
   };
   
@@ -72,14 +81,16 @@ export default function TripDetailsPage({ params }: { params: { id: string } }) 
         caption: newImage.caption,
         rotation: Math.floor(Math.random() * 21) - 10, // -10 to 10
       };
-      setTrip({ ...trip, images: [...trip.images, newImageWithId] });
+      const updatedImages = [...trip.images, newImageWithId];
+      setTrip({ ...trip, images: updatedImages });
+      updateTrip(trip.id, { images: updatedImages });
     }
     setIsModalOpen(false);
     setNewImage(null);
   };
   
   if (!trip) {
-    return <div>Trip not found</div>;
+    return <div>Loading trip...</div>;
   }
 
   const hasImages = trip.images.length > 0;
@@ -148,37 +159,32 @@ export default function TripDetailsPage({ params }: { params: { id: string } }) 
             <h2 className="font-headline text-5xl">Moments</h2>
             <p className="text-muted-foreground mt-2">"Some of our best memories at {trip.name}"</p>
             
-            <div className="mt-8 relative min-h-[400px] w-full flex flex-wrap justify-center items-center gap-8 p-4">
+            <div className="mt-8 relative min-h-[400px] w-full flex flex-row flex-wrap justify-center items-center gap-8 p-4">
                 {trip.images.map((image) => (
                     <Polaroid
                         key={image.id}
                         src={image.src}
                         caption={image.caption}
                         style={{ transform: `rotate(${image.rotation}deg)` }}
+                        isEditable={true}
+                        onCaptionSave={(newCaption) => handleCaptionUpdate(image.id, newCaption)}
                     />
                 ))}
 
                 {trip.images.length < 5 && (
                     <div onClick={handleImageUploadClick} className="cursor-pointer">
-                        <Polaroid src="" caption="">
+                        <Polaroid src="" caption='"Your awesome caption goes here......"'>
                             <div className="w-full h-full border-2 border-dashed border-gray-300 rounded-sm flex flex-col items-center justify-center bg-gray-50/50 p-4 text-center">
                                 <PlusCircle className="h-8 w-8 text-gray-400" />
-                                <p className="text-sm text-gray-500 mt-2 font-caption text-lg">"Your awesome caption goes here......"</p>
+                                <p className="text-sm text-gray-500 mt-2 font-caption text-lg">"Click to add a photo"</p>
                             </div>
                         </Polaroid>
                     </div>
                 )}
             </div>
             
-            {!hasImages && (
-                 <div className="mt-4 inline-flex items-center gap-2 bg-gray-100 text-gray-600 px-4 py-2 rounded-lg text-sm">
-                    <Sparkles size={16} />
-                    Click to upload your photos and add caption. You can add up to 5 images here.
-                </div>
-            )}
-             
-             {hasImages && trip.images.length < 5 && (
-                  <p className="text-xs text-muted-foreground mt-4 flex items-center gap-1.5 justify-center"><Users size={14}/> Use "@" to tag your trip buddies to collaborate.</p>
+            {hasImages && trip.images.length < 5 && (
+                  <p className="text-xs text-muted-foreground mt-4">You can add {5 - trip.images.length} more photos.</p>
              )}
         </section>
 
@@ -187,26 +193,22 @@ export default function TripDetailsPage({ params }: { params: { id: string } }) 
          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
             <DialogContent className="max-w-sm">
                 <DialogHeader>
-                    <DialogTitle>Add your caption</DialogTitle>
+                    <DialogTitle>Add your image</DialogTitle>
                 </DialogHeader>
                 {newImage && (
                     <div className="flex flex-col items-center">
-                        <Polaroid
+                        <NextImage
                             src={newImage.src}
-                            caption={newImage.caption}
-                        >
-                            <div className="absolute bottom-5 left-0 right-0 px-4">
-                                <EditableText 
-                                    initialValue={newImage.caption}
-                                    onSave={(value) => setNewImage({...newImage, caption: value})}
-                                    className="font-caption text-center text-xl text-accent truncate"
-                                    inputClassName="font-caption text-xl"
-                                />
-                            </div>
-                        </Polaroid>
+                            alt="Preview"
+                            width={248}
+                            height={248}
+                            className="w-full h-auto object-cover aspect-square rounded-sm"
+                        />
+                        <p className="mt-4 font-caption text-xl text-accent">"{newImage.caption}"</p>
                     </div>
                 )}
                 <DialogFooter>
+                    <Button onClick={() => setIsModalOpen(false)} variant="ghost">Cancel</Button>
                     <Button onClick={handleCaptionSave}>Save</Button>
                 </DialogFooter>
             </DialogContent>
@@ -225,4 +227,13 @@ export default function TripDetailsPage({ params }: { params: { id: string } }) 
       </main>
     </div>
   );
+}
+
+
+export default function TripDetailsPage({ params }: { params: { id: string } }) {
+  return (
+    <TripsProvider>
+      <TripDetailsPageContent params={params} />
+    </TripsProvider>
+  )
 }

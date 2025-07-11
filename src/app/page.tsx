@@ -1,58 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useContext } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Leaf, Award, Rocket, Copy, PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { type Trip, type Image as ImageType } from '@/types';
+import { type Trip } from '@/types';
 import NextImage from 'next/image';
 import { EditableText } from '@/components/editable-text';
 import { Polaroid } from '@/components/polaroid';
 import { ImageStack } from '@/components/image-stack';
 import { useRouter } from 'next/navigation';
+import { TripsContext, TripsProvider } from '@/context/trips-context';
 
-const initialImages: ImageType[] = [
-    { id: 1, src: 'https://placehold.co/600x400.png', caption: '@somebody trying to do a headstand here, seconds before chaos', rotation: -3, dataAiHint: "people nature" },
-    { id: 2, src: 'https://placehold.co/600x400.png', caption: 'A beautiful landscape', rotation: 5, dataAiHint: "landscape mountains" },
-    { id: 3, src: 'https://placehold.co/600x400.png', caption: 'Chai stop', rotation: -2, dataAiHint: "tea cup" },
-];
-
-const initialTripData: Omit<Trip, 'id'> = {
-  date: 'Date',
-  name: 'Your trip name',
-  description: "Your trip's short story goes here",
-  images: [],
-  bestMoment: '',
-  worstMoment: '',
-};
-
-const populatedTrip: Trip = {
-    id: 1,
-    date: 'May 2022',
-    name: 'Let\'s head to Himachal and explore the stunning Spiti...',
-    description: '"A week of dusty roads, chai, and snowfall mornings. A week of dusty roads, chai, and snowfall mornings."',
-    images: initialImages,
-    bestMoment: '',
-    worstMoment: '',
-}
-
-export default function Home() {
+function HomeContent() {
+  const { trips, addTrip, updateTrip } = useContext(TripsContext);
   const { toast } = useToast();
-  const [trips, setTrips] = useState<Trip[]>([populatedTrip, { ...initialTripData, id: Date.now() }]);
-
+  const router = useRouter();
+  
   const handleUpdateTrip = (id: number, field: keyof Omit<Trip, 'id' | 'images'>, value: string) => {
-    setTrips(currentTrips =>
-      currentTrips.map(trip =>
-        trip.id === id ? { ...trip, [field]: value } : trip
-      )
-    );
+    updateTrip(id, { [field]: value });
   };
 
-  const addNextTrip = () => {
+  const handleAddTrip = () => {
     if (trips.length < 5) {
-      setTrips(current => [...current, { ...initialTripData, id: Date.now() }]);
+      addTrip();
     } else {
       toast({
         title: "Maximum trips reached",
@@ -120,7 +92,7 @@ export default function Home() {
             ))}
             {trips.length < 5 && (
                <div
-                  onClick={addNextTrip}
+                  onClick={handleAddTrip}
                   className="flex flex-col items-center justify-center bg-green-100/50 p-8 rounded-3xl shadow-sm border-2 border-dashed border-primary/20 cursor-pointer hover:bg-green-100 transition-colors group min-h-[550px]"
                 >
                   <PlusCircle className="h-12 w-12 text-primary/50 group-hover:text-primary transition-colors" />
@@ -139,7 +111,6 @@ export default function Home() {
     </div>
   );
 }
-
 
 function TripCard({ trip, onUpdate }: { trip: Trip; onUpdate: (id: number, field: keyof Omit<Trip, 'id' | 'images'>, value: string) => void }) {
   const router = useRouter();
@@ -191,4 +162,12 @@ function TripCard({ trip, onUpdate }: { trip: Trip; onUpdate: (id: number, field
       </div>
     </div>
   );
+}
+
+export default function Home() {
+    return (
+        <TripsProvider>
+            <HomeContent />
+        </TripsProvider>
+    )
 }
