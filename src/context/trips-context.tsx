@@ -43,6 +43,7 @@ const getInitialTrips = (): Trip[] => {
 
 export const TripsProvider = ({ children }: { children: ReactNode }) => {
   const [trips, setTrips] = useState<Trip[]>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Effect to set the initial state from localStorage or create a fresh one.
   useEffect(() => {
@@ -65,16 +66,17 @@ export const TripsProvider = ({ children }: { children: ReactNode }) => {
         console.error("Failed to parse trips from localStorage, starting fresh.", error);
         setTrips(getInitialTrips());
       }
+      setIsInitialized(true);
     }
   }, []);
 
   // Effect to save any changes back to localStorage
   useEffect(() => {
     // Only save to localStorage if trips have been initialized
-    if (isBrowser && trips.length > 0) {
+    if (isBrowser && isInitialized) {
         window.localStorage.setItem(TRIPS_STORAGE_KEY, JSON.stringify(trips));
     }
-  }, [trips]);
+  }, [trips, isInitialized]);
 
   const addTrip = useCallback(() => {
     setTrips(current => {
@@ -100,7 +102,13 @@ export const TripsProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const deleteTrip = useCallback((id: number) => {
-    setTrips(currentTrips => currentTrips.filter(trip => trip.id !== id));
+    setTrips(currentTrips => {
+      const remainingTrips = currentTrips.filter(trip => trip.id !== id);
+      if (remainingTrips.length === 0) {
+        return getInitialTrips();
+      }
+      return remainingTrips;
+    });
   }, []);
 
   const updateTrip = useCallback((id: number, updates: Partial<Omit<Trip, 'id'>>) => {
@@ -116,7 +124,7 @@ export const TripsProvider = ({ children }: { children: ReactNode }) => {
   },[trips]);
 
   // To prevent rendering children before trips are loaded from localStorage
-  if (trips.length === 0) {
+  if (!isInitialized) {
     return null; // Or a loading spinner
   }
 

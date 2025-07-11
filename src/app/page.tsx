@@ -20,7 +20,7 @@ function HomeContent() {
   // This effect ensures there's always a blank "new trip" card available.
   useEffect(() => {
     const hasBlankTrip = trips.some(
-      (trip) => !trip.name || trip.name === 'Your trip name'
+      (trip) => trip.name === 'Your trip name'
     );
     if (trips.length < 5 && !hasBlankTrip) {
       addTrip();
