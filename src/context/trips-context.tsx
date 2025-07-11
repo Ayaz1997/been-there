@@ -30,6 +30,7 @@ export const TripsContext = createContext<TripsContextType>({
 const isBrowser = typeof window !== 'undefined';
 const TRIPS_STORAGE_KEY = 'beenthere-trips';
 
+// This function now correctly defines what a "fresh start" is: a single, blank trip.
 const getInitialTrips = (): Trip[] => {
   const newTrip: Trip = {
     ...initialTripData,
@@ -41,33 +42,53 @@ const getInitialTrips = (): Trip[] => {
 
 
 export const TripsProvider = ({ children }: { children: ReactNode }) => {
-  const [trips, setTrips] = useState<Trip[]>(() => {
-    if (!isBrowser) return getInitialTrips();
-    try {
-      const storedTrips = window.localStorage.getItem(TRIPS_STORAGE_KEY);
-      // If nothing is in storage, start with a fresh trip. Otherwise, parse what's there.
-      return storedTrips ? JSON.parse(storedTrips) : getInitialTrips();
-    } catch (error) {
-      console.error("Failed to parse trips from localStorage, starting fresh.", error);
-      return getInitialTrips();
-    }
-  });
+  const [trips, setTrips] = useState<Trip[]>([]);
 
+  // Effect to set the initial state from localStorage or create a fresh one.
   useEffect(() => {
     if (isBrowser) {
+      try {
+        const storedTrips = window.localStorage.getItem(TRIPS_STORAGE_KEY);
+        if (storedTrips) {
+          const parsedTrips = JSON.parse(storedTrips);
+          // Ensure we don't load an empty array from storage, always have at least one card.
+          if (parsedTrips.length > 0) {
+            setTrips(parsedTrips);
+          } else {
+            setTrips(getInitialTrips());
+          }
+        } else {
+          // If nothing is in storage, this is a true fresh start.
+          setTrips(getInitialTrips());
+        }
+      } catch (error) {
+        console.error("Failed to parse trips from localStorage, starting fresh.", error);
+        setTrips(getInitialTrips());
+      }
+    }
+  }, []);
+
+  // Effect to save any changes back to localStorage
+  useEffect(() => {
+    // Only save to localStorage if trips have been initialized
+    if (isBrowser && trips.length > 0) {
         window.localStorage.setItem(TRIPS_STORAGE_KEY, JSON.stringify(trips));
     }
   }, [trips]);
 
   const addTrip = useCallback(() => {
     setTrips(current => {
-      // Prevent adding more than 5 trips total
-      if (current.length >= 5) return current;
+      if (current.length >= 5) {
+        return current;
+      }
       
       const hasBlankTrip = current.some(
-        (trip) => !trip.name || trip.name === 'Your trip name'
+        (trip) => trip.name === 'Your trip name'
       );
-      if(hasBlankTrip) return current;
+
+      if (hasBlankTrip) {
+        return current;
+      }
 
       const newTrip: Trip = {
         ...initialTripData,
@@ -93,6 +114,11 @@ export const TripsProvider = ({ children }: { children: ReactNode }) => {
   const getTrip = useCallback((id: number): Trip | undefined => {
     return trips.find(trip => trip.id === id);
   },[trips]);
+
+  // To prevent rendering children before trips are loaded from localStorage
+  if (trips.length === 0) {
+    return null; // Or a loading spinner
+  }
 
   return (
     <TripsContext.Provider value={{ trips, addTrip, deleteTrip, updateTrip, getTrip }}>
